@@ -320,39 +320,52 @@ function Flashcard(props: {
   onToggleReverse: () => void;
 }) {
   const { prompt, answer, revealed, showReverse, onReveal, onToggleReverse } = props;
-  
+
+  const isFlipped = revealed && !showReverse; // front: prompt, back: answer
+
   const handleClick = () => {
     if (!revealed) {
       onReveal();
-    } else {
-      onToggleReverse();
+      return;
     }
+    onToggleReverse();
   };
 
-  const displayText = revealed 
-    ? (showReverse ? prompt : answer)
-    : prompt;
-
   return (
-    <div className="relative w-full select-none">
+    <div className="relative w-full select-none flip-scene">
       <div 
-        className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 md:p-8 cursor-pointer hover:shadow-md transition-shadow"
+        className={`flip-card cursor-pointer`} 
         onClick={handleClick}
+        style={{ height: "16rem" }}
       >
-        <div className="text-center space-y-4">
-          <div className="text-3xl md:text-4xl font-semibold tracking-tight">
-            {displayText}
+        <div className={`absolute inset-0 rounded-xl border bg-card text-card-foreground shadow-sm p-6 md:p-8 flip-face grid place-items-center`}>
+          <div className="text-center space-y-3">
+            <div className="text-3xl md:text-4xl font-semibold tracking-tight">{prompt}</div>
+            {!revealed && (
+              <div className="text-sm text-muted-foreground">Tap card to reveal answer</div>
+            )}
+            {revealed && showReverse && (
+              <div className="text-sm text-muted-foreground">Tap card to flip • Showing prompt</div>
+            )}
           </div>
-          {!revealed && (
-            <div className="text-sm text-muted-foreground">Tap card to reveal answer</div>
-          )}
-          {revealed && (
-            <div className="text-sm text-muted-foreground">
-              Tap card to flip • {showReverse ? "Showing prompt" : "Showing answer"}
-            </div>
-          )}
+        </div>
+
+        <div className={`absolute inset-0 rounded-xl border bg-card text-card-foreground shadow-sm p-6 md:p-8 flip-face flip-back grid place-items-center`}>
+          <div className="text-center space-y-3">
+            <div className="text-3xl md:text-4xl font-semibold tracking-tight">{answer}</div>
+            {revealed && !showReverse && (
+              <div className="text-sm text-muted-foreground">Tap card to flip • Showing answer</div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* rotation state wrapper to avoid reflow */}
+      <style>
+        {`.flip-card{position:relative}
+          .flip-card${isFlipped ? '' : ''}{transform:${isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'};}
+        `}
+      </style>
     </div>
   );
 }
