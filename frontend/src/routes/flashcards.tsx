@@ -46,6 +46,7 @@ function RouteComponent() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [showReverse, setShowReverse] = useState(false);
   const [allowFuture, setAllowFuture] = useState(false);
+  const [studyMode, setStudyMode] = useState<"list" | "cards">("list");
 
   const STORAGE_KEY_PROGRESS = `flashcards:${unit}:progress`;
   const STORAGE_KEY_SETTINGS = "flashcards:settings";
@@ -103,14 +104,14 @@ function RouteComponent() {
   }, [cards, progress, now, allowFuture]);
 
   useEffect(() => {
-    if (nextCard) {
+    if (nextCard && studyMode === "cards") {
       setCurrentId(nextCard.id);
       setShowAnswer(false);
       setShowReverse(false);
-    } else {
+    } else if (studyMode === "list") {
       setCurrentId(null);
     }
-  }, [nextCard]);
+  }, [nextCard, studyMode]);
 
   function handleGrade(quality: Quality) {
     if (!currentId) return;
@@ -160,24 +161,34 @@ function RouteComponent() {
         <div className="mx-auto max-w-2xl px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-4">
             <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">← Back to units</Link>
-            <div className="text-sm text-muted-foreground">Due: <span className="font-medium text-foreground">{dueCount}</span> / {totalCount}</div>
+            <div className="text-sm text-muted-foreground">
+              {studyMode === "list" ? `Vocabulary List (${totalCount} words)` : `Due: ${dueCount} / ${totalCount}`}
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            {hasFutureOnly && (
+            {studyMode === "cards" && hasFutureOnly && (
               <span className="text-xs text-muted-foreground">
                 Next in {formatDuration(nextDueInMs)}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={togglePromptSide}>
-              Show: {settings.promptSide === "korean" ? "한국어 → English" : "English → 한국어"}
-            </Button>
+            {studyMode === "cards" && (
+              <Button variant="outline" size="sm" onClick={togglePromptSide}>
+                Show: {settings.promptSide === "korean" ? "한국어 → English" : "English → 한국어"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleResetProgress}>Reset</Button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 mx-auto max-w-2xl w-full px-4 py-8">
-        {card ? (
+        {studyMode === "list" ? (
+          <VocabularyList 
+            cards={cards} 
+            progress={progress}
+            onStartCards={() => setStudyMode("cards")}
+          />
+        ) : card ? (
           <div className="space-y-6">
             <Flashcard
               prompt={settings.promptSide === "korean" ? card.korean : card.english}
@@ -214,10 +225,88 @@ function RouteComponent() {
               {hasFutureOnly && (
                 <Button onClick={() => setAllowFuture(true)} variant="outline">Study ahead</Button>
               )}
+              <Button onClick={() => setStudyMode("list")} variant="outline">Back to list</Button>
             </div>
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function VocabularyList(props: { 
+  cards: VocabCard[]; 
+  progress: ProgressMap;
+  onStartCards: () => void;
+}) {
+  const { cards, progress, onStartCards } = props;
+  
+  const now = Date.now();
+  const cardsWithStatus = cards.map(card => {
+    const cardProgress = progress[card.id];
+    const isDue = !cardProgress || cardProgress.dueAtMs <= now;
+    const nextReview = cardProgress ? formatDuration(Math.max(0, cardProgress.dueAtMs - now)) : "now";
+    
+    return {
+      ...card,
+      isDue,
+      nextReview,
+      repetitions: cardProgress?.repetitions ?? 0,
+      lapses: cardProgress?.lapses ?? 0,
+    };
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold">Vocabulary Review</h2>
+          <p className="text-muted-foreground">Quick overview of all words in this unit</p>
+        </div>
+        <Button onClick={onStartCards} size="lg">
+          Start Flashcards
+        </Button>
+      </div>
+
+      <div className="grid gap-3">
+        {cardsWithStatus.map((card) => (
+          <div 
+            key={card.id}
+            className={`rounded-lg border p-4 transition-colors ${
+              card.isDue 
+                ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950" 
+                : "border-border bg-card"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-4">
+                  <div className="text-xl font-medium">{card.korean}</div>
+                  <div className="text-muted-foreground">→</div>
+                  <div className="text-lg">{card.english}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    card.isDue 
+                      ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                      : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  }`}>
+                    {card.isDue ? "Due" : "Next: " + card.nextReview}
+                  </span>
+                </div>
+                {card.repetitions > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span>✓{card.repetitions}</span>
+                    {card.lapses > 0 && <span className="text-red-500">✗{card.lapses}</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
