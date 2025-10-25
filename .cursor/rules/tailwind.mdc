@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+always use tailwindcss for styling, never use inline styling

@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+if you update any logic in the algorythm behind the flashcard (how they are being show at anytime, etc) please update the flash_algo.md and add the new version of how it works on the top with the exact time it was updated and leave the previous text below it to have kind of a version control.
