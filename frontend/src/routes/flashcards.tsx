@@ -4,6 +4,21 @@ import { Switch } from "@/components/ui/switch";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
+// Native TTS for Korean
+function speakKorean(text: string) {
+  try {
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+    if (!synth) return;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ko-KR";
+    u.rate = 0.9;
+    synth.speak(u);
+  } catch {
+    // ignore if not supported
+  }
+}
+
 type VocabCard = {
   korean: string;
   english: string;
@@ -314,6 +329,7 @@ function RouteComponent() {
               showReverse={showReverse}
               onReveal={() => setShowAnswer(true)}
               onToggleReverse={() => setShowReverse(!showReverse)}
+              onSpeakKorean={() => speakKorean(card.korean)}
             />
 
             {showAnswer ? (
@@ -445,7 +461,18 @@ function VocabularyList(props: {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-4">
-                  <div className="text-xl font-medium">{card.korean}</div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => speakKorean(card.korean)}
+                      aria-label="Speak Korean word"
+                      title="Play pronunciation"
+                    >
+                      <span>🔊</span>
+                    </Button>
+                    <div className="text-xl font-medium">{card.korean}</div>
+                  </div>
                   <div className="text-muted-foreground">→</div>
                   <div className="text-lg">{card.english}</div>
                 </div>
@@ -523,7 +550,16 @@ function ReviewDrill(props: {
   return (
     <div className="space-y-6">
       <div className="text-sm text-muted-foreground">Word {index + 1} of {total}</div>
-      <div className={`rounded-xl border p-6 md:p-8 text-center ${feedbackClasses}`}>
+      <div className={`rounded-xl border p-6 md:p-8 text-center relative ${feedbackClasses}`}>
+        <button
+          type="button"
+          onClick={() => speakKorean(current.korean)}
+          className="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform"
+          aria-label="Speak Korean word"
+          title="Play pronunciation"
+        >
+          🔊
+        </button>
         <div className="space-y-2">
           <div className="text-3xl md:text-4xl font-semibold tracking-tight">{current.english}</div>
           {showKorean && (
@@ -562,8 +598,9 @@ function Flashcard(props: {
   showReverse: boolean;
   onReveal: () => void;
   onToggleReverse: () => void;
+  onSpeakKorean: () => void;
 }) {
-  const { prompt, answer, revealed, showReverse, onReveal, onToggleReverse } = props;
+  const { prompt, answer, revealed, showReverse, onReveal, onToggleReverse, onSpeakKorean } = props;
 
   const isFlipped = revealed && !showReverse; // front: prompt, back: answer
 
@@ -577,6 +614,15 @@ function Flashcard(props: {
 
   return (
     <div className="relative w-full select-none flip-scene">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onSpeakKorean(); }}
+        className="absolute top-4 right-4 z-20 text-2xl hover:scale-110 transition-transform"
+        aria-label="Speak Korean word"
+        title="Play pronunciation"
+      >
+        🔊
+      </button>
       <div 
         className={`flip-card cursor-pointer`} 
         onClick={handleClick}
