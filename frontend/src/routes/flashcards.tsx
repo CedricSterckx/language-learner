@@ -66,7 +66,7 @@ function RouteComponent() {
     void (async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/src/assets/vocabulary/A1/${unit}.json`);
+        const response = await fetch(`/vocabulary/A1/${unit}.json`);
         if (!response.ok) throw new Error(`Failed to load deck: ${response.status}`);
         const raw: Array<{ korean: string; english: string }> = await response.json();
         const withIds: VocabCard[] = raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
