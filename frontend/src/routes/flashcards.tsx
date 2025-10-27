@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
@@ -22,9 +24,10 @@ type Quality = "again" | "hard" | "good" | "easy";
 
 type Settings = {
   promptSide: "korean" | "english";
+  typingMode: boolean;
 };
 
-const DEFAULT_SETTINGS: Settings = { promptSide: "korean" };
+const DEFAULT_SETTINGS: Settings = { promptSide: "korean", typingMode: false };
 
 export const Route = createFileRoute("/flashcards")({
   component: RouteComponent,
@@ -47,9 +50,10 @@ function RouteComponent() {
   const [showReverse, setShowReverse] = useState(false);
   const [allowFuture, setAllowFuture] = useState(false);
   const [studyMode, setStudyMode] = useState<"list" | "cards">("list");
+  const [typedAnswer, setTypedAnswer] = useState("");
+  const [answerFeedback, setAnswerFeedback] = useState<"correct" | "incorrect" | null>(null);
 
   const STORAGE_KEY_PROGRESS = `flashcards:${unit}:progress`;
-  const STORAGE_KEY_SETTINGS = "flashcards:settings";
 
   useEffect(() => {
     void (async () => {
@@ -77,8 +81,8 @@ function RouteComponent() {
   }, [progress, STORAGE_KEY_PROGRESS]);
 
   useEffect(() => {
-    saveSettings(settings, STORAGE_KEY_SETTINGS);
-  }, [settings, STORAGE_KEY_SETTINGS]);
+    saveSettings(settings);
+  }, [settings]);
 
   const now = Date.now();
 
@@ -108,6 +112,8 @@ function RouteComponent() {
       setCurrentId(nextCard.id);
       setShowAnswer(false);
       setShowReverse(false);
+      setTypedAnswer("");
+      setAnswerFeedback(null);
     } else if (studyMode === "list") {
       setCurrentId(null);
     }
@@ -122,6 +128,35 @@ function RouteComponent() {
     setProgress((prev) => ({ ...prev, [currentId]: updated }));
     setShowAnswer(false);
     setShowReverse(false);
+    setTypedAnswer("");
+    setAnswerFeedback(null);
+  }
+
+  function handleTypedAnswer() {
+    if (!currentId) return;
+    const currentCard = cards.find((c) => c.id === currentId);
+    if (!currentCard) return;
+    
+    const correctAnswer = settings.promptSide === "korean" ? currentCard.english : currentCard.korean;
+    const normalizedCorrect = correctAnswer.toLowerCase().trim();
+    const normalizedUser = typedAnswer.toLowerCase().trim();
+    
+    if (normalizedUser === normalizedCorrect) {
+      setAnswerFeedback("correct");
+      setShowAnswer(true);
+    } else {
+      setAnswerFeedback("incorrect");
+      setShowAnswer(true);
+    }
+  }
+
+  function toggleTypingMode(checked: boolean) {
+    setSettings((s) => ({ ...s, typingMode: checked }));
+    setTypedAnswer("");
+    setAnswerFeedback(null);
+    if (!showAnswer) {
+      setShowAnswer(false);
+    }
   }
 
   function handleResetProgress() {
@@ -172,9 +207,18 @@ function RouteComponent() {
               </span>
             )}
             {studyMode === "cards" && (
-              <Button variant="outline" size="sm" onClick={togglePromptSide}>
-                Show: {settings.promptSide === "korean" ? "한국어 → English" : "English → 한국어"}
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={togglePromptSide}>
+                  Show: {settings.promptSide === "korean" ? "한국어 → English" : "English → 한국어"}
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={settings.typingMode}
+                    onCheckedChange={toggleTypingMode}
+                  />
+                  <span className="text-sm text-muted-foreground">Typing</span>
+                </div>
+              </>
             )}
             <Button variant="outline" size="sm" onClick={handleResetProgress}>Reset</Button>
           </div>
@@ -191,6 +235,7 @@ function RouteComponent() {
         ) : card ? (
           <div className="space-y-6">
             <Flashcard
+              key={currentId}
               prompt={settings.promptSide === "korean" ? card.korean : card.english}
               answer={settings.promptSide === "korean" ? card.english : card.korean}
               revealed={showAnswer}
@@ -200,11 +245,52 @@ function RouteComponent() {
             />
 
             {showAnswer ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <Button variant="destructive" onClick={() => handleGrade("again")}>Again</Button>
-                <Button variant="outline" onClick={() => handleGrade("hard")}>Hard</Button>
-                <Button onClick={() => handleGrade("good")}>Good</Button>
-                <Button variant="secondary" onClick={() => handleGrade("easy")}>Easy</Button>
+              <div className="space-y-4">
+                {settings.typingMode && (
+                  <div className={`p-4 rounded-lg border ${
+                    answerFeedback === "correct" 
+                      ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" 
+                      : answerFeedback === "incorrect"
+                      ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+                      : "bg-muted"
+                  }`}>
+                    <div className="text-center text-sm font-medium">
+                      {answerFeedback === "correct" && "✓ Correct!"}
+                      {answerFeedback === "incorrect" && "✗ Incorrect"}
+                      {!answerFeedback && "Show Answer"}
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <Button variant="destructive" onClick={() => handleGrade("again")}>Again</Button>
+                  <Button variant="outline" onClick={() => handleGrade("hard")}>Hard</Button>
+                  <Button onClick={() => handleGrade("good")}>Good</Button>
+                  <Button variant="secondary" onClick={() => handleGrade("easy")}>Easy</Button>
+                </div>
+              </div>
+            ) : settings.typingMode ? (
+              <div className="space-y-3">
+                <Input
+                  value={typedAnswer}
+                  onChange={(e) => setTypedAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && typedAnswer.trim()) {
+                      handleTypedAnswer();
+                    }
+                  }}
+                  placeholder="Type your answer..."
+                  autoFocus
+                />
+                <Button 
+                  className="w-full" 
+                  onClick={handleTypedAnswer}
+                  disabled={!typedAnswer.trim()}
+                >
+                  Check Answer
+                </Button>
+                {hasFutureOnly && (
+                  <Button variant="outline" onClick={() => setAllowFuture(true)}>Study ahead</Button>
+                )}
               </div>
             ) : (
               <div className="flex gap-3">

@@ -1,3 +1,33 @@
+## Flashcard Scheduling Logic and Features
+
+**Last updated: 2024-12-19 - Typing feature added**
+
+### Typing Mode Feature
+
+A new typing mode allows users to type their answers directly instead of just revealing them.
+
+**How it works:**
+1. Typing mode is toggled via a switch in the header (disabled by default)
+2. When enabled, an input field appears instead of "Show answer" button
+3. User types their answer
+4. Press Enter or click "Check Answer" to submit
+5. Feedback is displayed:
+   - Green background with "✓ Correct!" for correct answers
+   - Red background with "✗ Incorrect" for incorrect answers
+6. After showing answer and feedback, user can still use the standard grading buttons (Again, Hard, Good, Easy)
+
+**Answer Checking:**
+- Answers are compared after normalizing to lowercase and trimming whitespace
+- Works with both prompt side settings (korean → english or english → korean)
+- The correct answer is determined based on the current prompt side setting
+
+**State Management:**
+- Typing mode preference is saved in localStorage settings
+- Typed answer and feedback are reset when moving to next card
+- Can be toggled on/off at any time during study session
+
+---
+
 ## Flashcard Scheduling Logic (First Draft)
 
 ### Overview
