@@ -1,6 +1,20 @@
 ## Flashcard Scheduling Logic and Features
 
-**Last updated: 2024-12-19 - Typing feature added**
+**Last updated: 2025-10-27 - Added Review Drill (English → 한국어) on list page**
+
+### Review Drill (English → 한국어)
+
+- Entry point: On the unit vocabulary list page, click "Review vocabulary list".
+- The app shuffles the unit's words and presents them one by one.
+- Prompt shows the English word; user must type the Korean translation to advance.
+- Correct input advances immediately to the next word; incorrect input shows gentle error feedback and allows retry.
+- Progress in this drill does not affect spaced-repetition scheduling; it is a quick, linear practice round.
+- Header shows progress (current index / total) and includes an Exit button to return to the list.
+
+Visual feedback:
+- Idle: standard card.
+- Correct: green accent briefly before advancing.
+- Incorrect: red accent with “Try again”.
 
 ### Typing Mode Feature
 

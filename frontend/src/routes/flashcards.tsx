@@ -49,9 +49,16 @@ function RouteComponent() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [showReverse, setShowReverse] = useState(false);
   const [allowFuture, setAllowFuture] = useState(false);
-  const [studyMode, setStudyMode] = useState<"list" | "cards">("list");
+  const [studyMode, setStudyMode] = useState<"list" | "cards" | "review">("list");
   const [typedAnswer, setTypedAnswer] = useState("");
   const [answerFeedback, setAnswerFeedback] = useState<"correct" | "incorrect" | null>(null);
+
+  // review drill state
+  const [reviewOrder, setReviewOrder] = useState<VocabCard[]>([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewInput, setReviewInput] = useState("");
+  const [reviewFeedback, setReviewFeedback] = useState<"idle" | "correct" | "incorrect">("idle");
+  const [showKoreanHint, setShowKoreanHint] = useState(false);
 
   const STORAGE_KEY_PROGRESS = `flashcards:${unit}:progress`;
 
@@ -170,6 +177,45 @@ function RouteComponent() {
     setSettings((s) => ({ ...s, promptSide: s.promptSide === "korean" ? "english" : "korean" }));
   }
 
+  // Simple review drill helpers (English → 한국어)
+  function startReview() {
+    if (cards.length === 0) return;
+    setReviewOrder(shuffleArray(cards));
+    setReviewIndex(0);
+    setReviewInput("");
+    setReviewFeedback("idle");
+    setShowKoreanHint(false);
+    setStudyMode("review");
+  }
+
+  function submitReview() {
+    const current = reviewOrder[reviewIndex];
+    if (!current) return;
+    const expected = current.korean.trim();
+    const user = reviewInput.trim();
+    if (!user) return;
+    if (user === expected) {
+      setReviewFeedback("correct");
+      // advance to next
+      const nextIdx = reviewIndex + 1;
+      setTimeout(() => {
+        setReviewIndex(nextIdx);
+        setReviewInput("");
+        setReviewFeedback("idle");
+      }, 300);
+    } else {
+      setReviewFeedback("incorrect");
+    }
+  }
+
+  function exitReview() {
+    setStudyMode("list");
+    setReviewOrder([]);
+    setReviewIndex(0);
+    setReviewInput("");
+    setReviewFeedback("idle");
+  }
+
   if (loading) {
     return (
       <div className="min-h-dvh grid place-items-center">
@@ -197,7 +243,9 @@ function RouteComponent() {
           <div className="flex items-center gap-4">
             <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">← Back to units</Link>
             <div className="text-sm text-muted-foreground">
-              {studyMode === "list" ? `Vocabulary List (${totalCount} words)` : `Due: ${dueCount} / ${totalCount}`}
+              {studyMode === "list" && `Vocabulary List (${totalCount} words)`}
+              {studyMode === "cards" && `Due: ${dueCount} / ${totalCount}`}
+              {studyMode === "review" && `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -220,6 +268,18 @@ function RouteComponent() {
                 </div>
               </>
             )}
+            {studyMode === "review" && (
+              <>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={showKoreanHint}
+                    onCheckedChange={setShowKoreanHint}
+                  />
+                  <span className="text-sm text-muted-foreground">Show Korean</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={exitReview}>Exit review</Button>
+              </>
+            )}
             <Button variant="outline" size="sm" onClick={handleResetProgress}>Reset</Button>
           </div>
         </div>
@@ -231,6 +291,18 @@ function RouteComponent() {
             cards={cards} 
             progress={progress}
             onStartCards={() => setStudyMode("cards")}
+            onStartReview={startReview}
+          />
+        ) : studyMode === "review" ? (
+          <ReviewDrill 
+            items={reviewOrder}
+            index={reviewIndex}
+            input={reviewInput}
+            feedback={reviewFeedback}
+            setInput={setReviewInput}
+            onSubmit={submitReview}
+            onExit={exitReview}
+            showKorean={showKoreanHint}
           />
         ) : card ? (
           <div className="space-y-6">
@@ -324,8 +396,9 @@ function VocabularyList(props: {
   cards: VocabCard[]; 
   progress: ProgressMap;
   onStartCards: () => void;
+  onStartReview: () => void;
 }) {
-  const { cards, progress, onStartCards } = props;
+  const { cards, progress, onStartCards, onStartReview } = props;
   
   const now = Date.now();
   const cardsWithStatus = cards.map(card => {
@@ -346,12 +419,17 @@ function VocabularyList(props: {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Vocabulary Review</h2>
-          <p className="text-muted-foreground">Quick overview of all words in this unit</p>
+          <h2 className="text-2xl font-semibold">Vocabulary</h2>
+          <p className="text-muted-foreground">Browse the words or start a session</p>
         </div>
-        <Button onClick={onStartCards} size="lg">
-          Start Flashcards
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onStartReview} size="lg">
+            Review vocabulary list
+          </Button>
+          <Button onClick={onStartCards} size="lg">
+            Start Flashcards
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3">
@@ -392,6 +470,86 @@ function VocabularyList(props: {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewDrill(props: {
+  items: VocabCard[];
+  index: number;
+  input: string;
+  feedback: "idle" | "correct" | "incorrect";
+  setInput: (v: string) => void;
+  onSubmit: () => void;
+  onExit: () => void;
+  showKorean: boolean;
+}) {
+  const { items, index, input, feedback, setInput, onSubmit, onExit, showKorean } = props;
+  const total = items.length;
+  const done = index >= total;
+  const current = items[index];
+
+  if (total === 0) {
+    return (
+      <div className="min-h-[60dvh] grid place-items-center">
+        <div className="text-center space-y-3">
+          <div className="text-muted-foreground">No words to review.</div>
+          <Button variant="outline" onClick={onExit}>Back to list</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div className="min-h-[60dvh] grid place-items-center">
+        <div className="text-center space-y-3">
+          <div className="text-xl">Review complete 🎉</div>
+          <div className="text-sm text-muted-foreground">You went through all {total} words.</div>
+          <Button onClick={onExit} variant="outline">Back to list</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const feedbackClasses =
+    feedback === "correct"
+      ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950"
+      : feedback === "incorrect"
+      ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950"
+      : "border-border bg-card";
+
+  return (
+    <div className="space-y-6">
+      <div className="text-sm text-muted-foreground">Word {index + 1} of {total}</div>
+      <div className={`rounded-xl border p-6 md:p-8 text-center ${feedbackClasses}`}>
+        <div className="space-y-2">
+          <div className="text-3xl md:text-4xl font-semibold tracking-tight">{current.english}</div>
+          {showKorean && (
+            <div className="text-2xl md:text-3xl font-medium text-muted-foreground">{current.korean}</div>
+          )}
+          <div className="text-sm text-muted-foreground">Type the Korean translation</div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && input.trim()) onSubmit();
+          }}
+          placeholder="한국어로 입력하세요…"
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={onSubmit} disabled={!input.trim()}>Check</Button>
+          <Button variant="outline" onClick={onExit}>Exit</Button>
+        </div>
+        {feedback === "incorrect" && (
+          <div className="text-sm text-destructive">Try again</div>
+        )}
       </div>
     </div>
   );
@@ -561,6 +719,17 @@ function formatDuration(ms: number): string {
   if (min < 60) return `${min}m`;
   const hr = Math.round(min / 60);
   return `${hr}h`;
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+  return a;
 }
 
 
