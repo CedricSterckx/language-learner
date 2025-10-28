@@ -1,86 +1,60 @@
 [
-    {
-        "korean": "나라",
-        "english": "country"
-    },
-    {
-        "korean": "직업",
-        "english": "job"
-    },
-    {
-        "korean": "한국",
-        "english": "Korea"
-    },
-    {
-        "korean": "사람",
-        "english": "person"
-    },
-    {
-        "korean": "캐나다",
-        "english": "Canada"
-    },
-    {
-        "korean": "베트남",
-        "english": "Vietnam"
-    },
-    {
-        "korean": "미국",
-        "english": "U.S.A."
-    },
-    {
-        "korean": "프랑스",
-        "english": "France"
-    },
-    {
-        "korean": "태국",
-        "english": "Thailand"
-    },
-    {
-        "korean": "인도네시아",
-        "english": "Indonesia"
-    },
-    {
-        "korean": "중국",
-        "english": "China"
-    },
-    {
-        "korean": "일본",
-        "english": "Japan"
-    },
-    {
-        "korean": "러시아",
-        "english": "Russia"
-    },
-    {
-        "korean": "케냐",
-        "english": "Kenya"
-    },
-    {
-        "korean": "회사원",
-        "english": "office worker"
-    },
-    {
-        "korean": "대학생",
-        "english": "college student"
-    },
-    {
-        "korean": "의사",
-        "english": "doctor"
-    },
-    {
-        "korean": "경찰",
-        "english": "police officer"
-    },
-    {
-        "korean": "선생님",
-        "english": "teacher"
-    },
-    {
-        "korean": "가수",
-        "english": "singer"
-    },
-    {
-        "korean": "요리사",
-        "english": "cook"
-    }
+  { "korean": "나라", "english": "country" },
+  { "korean": "직업", "english": "job" },
+  { "korean": "한국", "english": "Korea" },
+  { "korean": "사람", "english": "person" },
+  { "korean": "캐나다", "english": "Canada" },
+  { "korean": "베트남", "english": "Vietnam" },
+  { "korean": "미국", "english": "U.S.A." },
+  { "korean": "프랑스", "english": "France" },
+  { "korean": "태국", "english": "Thailand" },
+  { "korean": "인도네시아", "english": "Indonesia" },
+  { "korean": "중국", "english": "China" },
+  { "korean": "일본", "english": "Japan" },
+  { "korean": "러시아", "english": "Russia" },
+  { "korean": "케냐", "english": "Kenya" },
+  { "korean": "회사원", "english": "office worker" },
+  { "korean": "대학생", "english": "college student" },
+  { "korean": "의사", "english": "doctor" },
+  { "korean": "경찰", "english": "police officer" },
+  { "korean": "선생님", "english": "teacher" },
+  { "korean": "가수", "english": "singer" },
+  { "korean": "요리사", "english": "cook" },
+{ "korean": "네", "english": "yes" },
+
+{ "korean": "아니요", "english": "no" },
+
+{ "korean": "나", "english": "I" },
+
+{ "korean": "모자", "english": "hat" },
+
+{ "korean": "책", "english": "book" },
+
+{ "korean": "공책", "english": "notebook" },
+
+{ "korean": "한복", "english": "Hanbok" },
+
+{ "korean": "커피", "english": "coffee" },
+
+{ "korean": "언니", "english": "older sister" },
+
+{ "korean": "동생", "english": "younger brother / sister" },
+
+{ "korean": "누구", "english": "who" },
+
+{ "korean": "친구", "english": "friend" },
+
+{ "korean": "씨", "english": "Mr. / Ms. / Miss." },
+
+{ "korean": "제", "english": "my" },
+
+{ "korean": "아버지", "english": "father" },
+
+{ "korean": "어머니", "english": "mother" },
+
+{ "korean": "이름", "english": "name" },
+
+{ "korean": "학생", "english": "student" },
+
+{ "korean": "자기소개", "english": "self-introduction" }
 ]

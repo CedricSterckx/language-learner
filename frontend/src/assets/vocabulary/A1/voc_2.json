@@ -1,86 +1,62 @@
 [
-    {
-        "korean": "나라",
-        "english": "country"
-    },
-    {
-        "korean": "직업",
-        "english": "job"
-    },
-    {
-        "korean": "한국",
-        "english": "Korea"
-    },
-    {
-        "korean": "사람",
-        "english": "person"
-    },
-    {
-        "korean": "캐나다",
-        "english": "Canada"
-    },
-    {
-        "korean": "베트남",
-        "english": "Vietnam"
-    },
-    {
-        "korean": "미국",
-        "english": "U.S.A."
-    },
-    {
-        "korean": "프랑스",
-        "english": "France"
-    },
-    {
-        "korean": "태국",
-        "english": "Thailand"
-    },
-    {
-        "korean": "인도네시아",
-        "english": "Indonesia"
-    },
-    {
-        "korean": "중국",
-        "english": "China"
-    },
-    {
-        "korean": "일본",
-        "english": "Japan"
-    },
-    {
-        "korean": "러시아",
-        "english": "Russia"
-    },
-    {
-        "korean": "케냐",
-        "english": "Kenya"
-    },
-    {
-        "korean": "회사원",
-        "english": "office worker"
-    },
-    {
-        "korean": "대학생",
-        "english": "college student"
-    },
-    {
-        "korean": "의사",
-        "english": "doctor"
-    },
-    {
-        "korean": "경찰",
-        "english": "police officer"
-    },
-    {
-        "korean": "선생님",
-        "english": "teacher"
-    },
-    {
-        "korean": "가수",
-        "english": "singer"
-    },
-    {
-        "korean": "요리사",
-        "english": "cook"
-    }
+  { "korean": "한자어", "english": "Sino-Korean word" },
+  { "korean": "수", "english": "number" },
+  { "korean": "영/공", "english": "zero" },
+  { "korean": "일", "english": "one" },
+  { "korean": "이", "english": "two" },
+  { "korean": "삼", "english": "three" },
+  { "korean": "사", "english": "four" },
+  { "korean": "오", "english": "five" },
+  { "korean": "육", "english": "six" },
+  { "korean": "칠", "english": "seven" },
+  { "korean": "팔", "english": "eight" },
+  { "korean": "구", "english": "nine" },
+  { "korean": "십", "english": "ten" },
+  { "korean": "십일", "english": "eleven" },
+  { "korean": "십이", "english": "twelve" },
+  { "korean": "십삼", "english": "thirteen" },
+  { "korean": "십사", "english": "fourteen" },
+  { "korean": "십오", "english": "fifteen" },
+  { "korean": "십육", "english": "sixteen" },
+  { "korean": "십칠", "english": "seventeen" },
+  { "korean": "십팔", "english": "eighteen" },
+  { "korean": "십구", "english": "nineteen" },
+  { "korean": "이십", "english": "twenty" },
+  { "korean": "삼십", "english": "thirty" },
+  { "korean": "사십", "english": "forty" },
+  { "korean": "오십", "english": "fifty" },
+  { "korean": "육십", "english": "sixty" },
+  { "korean": "칠십", "english": "seventy" },
+  { "korean": "팔십", "english": "eighty" },
+  { "korean": "구십", "english": "ninety" },
+  { "korean": "백", "english": "one hundred" },
+  { "korean": "층", "english": "floor" },
+  { "korean": "월", "english": "month" },
+  { "korean": "쪽", "english": "page" },
+  { "korean": "번", "english": "number" },
+  { "korean": "호", "english": "number" },
+  { "korean": "원", "english": "won (Korean currency)" },
+  { "korean": "몇", "english": "which" },
+  { "korean": "얼마", "english": "how much" },
+  { "korean": "전화번호", "english": "phone number" },
+  { "korean": "카페", "english": "cafe" },
+  { "korean": "식당", "english": "restaurant" },
+  { "korean": "영화관", "english": "movie theater" },
+  { "korean": "노래방", "english": "karaoke" },
+  { "korean": "PC방", "english": "internet cafe" },
+  { "korean": "지하", "english": "basement" },
+  { "korean": "형", "english": "older brother" },
+  { "korean": "교실", "english": "classroom" },
+  { "korean": "물", "english": "water" },
+  { "korean": "주스", "english": "juice" },
+  { "korean": "컴퓨터", "english": "computer" },
+  { "korean": "텔레비전", "english": "television" },
+  { "korean": "남자", "english": "boy" },
+  { "korean": "의자", "english": "chair" },
+  { "korean": "맞다", "english": "right" },
+  { "korean": "두", "english": "two" },
+  { "korean": "무슨", "english": "what" },
+  { "korean": "세종학당", "english": "King Sejong Institute" },
+  { "korean": "이메일", "english": "e-mail" },
+  { "korean": "주소", "english": "address" }
 ]
