@@ -490,7 +490,15 @@ function RouteComponent() {
                   >
                     <div className='text-center text-sm font-medium'>
                       {answerFeedback === 'correct' && '✓ Correct!'}
-                      {answerFeedback === 'incorrect' && '✗ Incorrect'}
+                      {answerFeedback === 'incorrect' && (
+                        <div className='space-y-2'>
+                          <div>✗ Incorrect</div>
+                          <div className='text-xs text-muted-foreground mt-2'>
+                            <div>Your answer: {typedAnswer}</div>
+                            <div>Correct answer: {settings.promptSide === 'korean' ? card.english : card.korean}</div>
+                          </div>
+                        </div>
+                      )}
                       {!answerFeedback && 'Show Answer'}
                     </div>
                   </div>
@@ -926,7 +934,14 @@ function ReviewDrill(props: {
             Exit
           </Button>
         </div>
-        {feedback === 'incorrect' && <div className='text-sm text-destructive'>Try again</div>}
+        {feedback === 'incorrect' && (
+          <div className='text-sm text-destructive space-y-1'>
+            <div>Try again</div>
+            <div className='text-xs text-muted-foreground'>
+              Your answer: {input} | Correct answer: {current.korean}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
