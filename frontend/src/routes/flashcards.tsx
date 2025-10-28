@@ -41,9 +41,10 @@ type Quality = 'again' | 'hard' | 'good' | 'easy';
 type Settings = {
   promptSide: 'korean' | 'english';
   typingMode: boolean;
+  largeListText: boolean;
 };
 
-const DEFAULT_SETTINGS: Settings = { promptSide: 'korean', typingMode: false };
+const DEFAULT_SETTINGS: Settings = { promptSide: 'korean', typingMode: false, largeListText: false };
 
 export const Route = createFileRoute('/flashcards')({
   component: RouteComponent,
@@ -248,6 +249,10 @@ function RouteComponent() {
     }
   }
 
+  function toggleLargeListText(checked: boolean) {
+    setSettings((s) => ({ ...s, largeListText: checked }));
+  }
+
   function handleResetProgress() {
     setProgress({});
     setAllowFuture(false);
@@ -436,6 +441,8 @@ function RouteComponent() {
             <VocabularyList
               cards={cards}
               progress={progress}
+              largeText={settings.largeListText}
+              onToggleLargeText={toggleLargeListText}
               onStartCards={() => setStudyMode('cards')}
               onStartReview={startReview}
             />
@@ -557,10 +564,12 @@ function RouteComponent() {
 function VocabularyList(props: {
   cards: VocabCard[];
   progress: ProgressMap;
+  largeText: boolean;
+  onToggleLargeText: (checked: boolean) => void;
   onStartCards: () => void;
   onStartReview: () => void;
 }) {
-  const { cards, progress, onStartCards, onStartReview } = props;
+  const { cards, progress, largeText, onToggleLargeText, onStartCards, onStartReview } = props;
 
   const now = Date.now();
   const cardsWithStatus = cards.map((card) => {
@@ -585,6 +594,10 @@ function VocabularyList(props: {
           <p className='text-muted-foreground'>Browse the words or start a session</p>
         </div>
         <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-2'>
+            <Switch checked={largeText} onCheckedChange={onToggleLargeText} />
+            <span className='text-sm text-muted-foreground'>Big text</span>
+          </div>
           <Button variant='outline' onClick={onStartReview} size='lg'>
             Review vocabulary list
           </Button>
@@ -646,10 +659,10 @@ function VocabularyList(props: {
                     >
                       <span>🔊</span>
                     </Button>
-                    <div className='text-xl font-medium'>{card.korean}</div>
+                    <div className={`${largeText ? 'text-2xl md:text-3xl' : 'text-xl'} font-medium`}>{card.korean}</div>
                   </div>
                   <div className='text-muted-foreground'>→</div>
-                  <div className='text-lg'>{card.english}</div>
+                  <div className={`${largeText ? 'text-xl md:text-2xl' : 'text-lg'}`}>{card.english}</div>
                 </div>
               </div>
               <div className='flex items-center gap-4 text-sm text-muted-foreground'>
