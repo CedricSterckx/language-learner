@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
 import { useEffect, useMemo, useState } from 'react';
 
 // Native TTS for Korean
@@ -12,7 +13,7 @@ function speakKorean(text: string) {
     synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ko-KR';
-    u.rate = 0.9;
+    u.rate = 0.75;
     synth.speak(u);
   } catch {
     // ignore if not supported
@@ -76,6 +77,8 @@ function RouteComponent() {
   const [showKoreanHint, setShowKoreanHint] = useState(false);
 
   const STORAGE_KEY_PROGRESS = `flashcards:${unit}:progress`;
+  const storage = useMemo(() => getStorageProvider(), []);
+  const [resumeCandidate, setResumeCandidate] = useState<SessionStateV1 | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -94,6 +97,25 @@ function RouteComponent() {
     })();
   }, [unit]);
 
+  // Load saved session once cards are available
+  useEffect(() => {
+    if (loading || cards.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const saved = await storage.getSession(unit);
+      if (cancelled) return;
+      if (!saved) {
+        setResumeCandidate(null);
+        return;
+      }
+      const normalized = normalizeSessionAgainstCards(saved, cards);
+      setResumeCandidate(normalized);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [unit, loading, cards, storage]);
+
   useEffect(() => {
     setProgress(loadProgress(unit));
   }, [unit]);
@@ -105,6 +127,49 @@ function RouteComponent() {
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  // Autosave session (debounced)
+  useEffect(() => {
+    if (cards.length === 0) return;
+    const reviewOrderIds = reviewOrder.map((c) => c.id);
+    const session: SessionStateV1 = {
+      schemaVersion: 1,
+      unit,
+      studyMode,
+      currentId,
+      showAnswer,
+      showReverse,
+      allowFuture,
+      typedAnswer,
+      answerFeedback,
+      reviewOrderIds,
+      reviewIndex,
+      reviewInput,
+      reviewFeedback,
+      showKoreanHint,
+      updatedAt: Date.now(),
+    };
+    const timer = window.setTimeout(() => {
+      void storage.saveSession(unit, session);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [
+    unit,
+    studyMode,
+    currentId,
+    showAnswer,
+    showReverse,
+    allowFuture,
+    typedAnswer,
+    answerFeedback,
+    reviewOrder,
+    reviewIndex,
+    reviewInput,
+    reviewFeedback,
+    showKoreanHint,
+    cards,
+    storage,
+  ]);
 
   const now = Date.now();
 
@@ -205,6 +270,55 @@ function RouteComponent() {
     setStudyMode('review');
   }
 
+  function applySessionState(s: SessionStateV1) {
+    // Apply basic mode state first
+    setStudyMode(s.studyMode);
+    setCurrentId(s.currentId ?? null);
+    setShowAnswer(Boolean(s.showAnswer));
+    setShowReverse(Boolean(s.showReverse));
+    setAllowFuture(Boolean(s.allowFuture));
+    setTypedAnswer(s.typedAnswer ?? '');
+    setAnswerFeedback(s.answerFeedback ?? null);
+    // Rebuild review order from IDs
+    const idToCard = new Map(cards.map((c) => [c.id, c] as const));
+    const rebuilt = (s.reviewOrderIds ?? []).map((id) => idToCard.get(id)).filter(Boolean) as VocabCard[];
+    setReviewOrder(rebuilt);
+    setReviewIndex(Math.min(Math.max(0, s.reviewIndex ?? 0), Math.max(0, rebuilt.length - 1)));
+    setReviewInput(s.reviewInput ?? '');
+    setReviewFeedback(s.reviewFeedback ?? 'idle');
+    setShowKoreanHint(Boolean(s.showKoreanHint));
+  }
+
+  function normalizeSessionAgainstCards(s: SessionStateV1, available: VocabCard[]): SessionStateV1 {
+    const validIds = new Set(available.map((c) => c.id));
+    const filteredOrder = (s.reviewOrderIds ?? []).filter((id) => validIds.has(id));
+    const currentOk = s.currentId && validIds.has(s.currentId) ? s.currentId : null;
+    let studyMode: typeof s.studyMode = s.studyMode;
+    if (studyMode === 'cards' && !currentOk) {
+      studyMode = 'list';
+    }
+    if (studyMode === 'review' && filteredOrder.length === 0) {
+      studyMode = 'list';
+    }
+    return {
+      ...s,
+      currentId: currentOk,
+      reviewOrderIds: filteredOrder,
+      studyMode,
+    };
+  }
+
+  async function handleResume() {
+    if (!resumeCandidate) return;
+    applySessionState(resumeCandidate);
+    setResumeCandidate(null);
+  }
+
+  async function handleClearSession() {
+    await storage.deleteSession(unit);
+    setResumeCandidate(null);
+  }
+
   function submitReview() {
     const current = reviewOrder[reviewIndex];
     if (!current) return;
@@ -303,12 +417,29 @@ function RouteComponent() {
 
       <main className='flex-1 mx-auto max-w-2xl w-full px-4 py-8'>
         {studyMode === 'list' ? (
-          <VocabularyList
-            cards={cards}
-            progress={progress}
-            onStartCards={() => setStudyMode('cards')}
-            onStartReview={startReview}
-          />
+          <>
+            {resumeCandidate && (
+              <div className='mb-6 rounded-lg border p-4 bg-muted/40 flex items-center justify-between gap-3'>
+                <div className='text-sm text-muted-foreground'>
+                  You have a previous session. Resume where you left off?
+                </div>
+                <div className='flex gap-2'>
+                  <Button size='sm' onClick={handleResume}>
+                    Resume
+                  </Button>
+                  <Button size='sm' variant='outline' onClick={handleClearSession}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+            <VocabularyList
+              cards={cards}
+              progress={progress}
+              onStartCards={() => setStudyMode('cards')}
+              onStartReview={startReview}
+            />
+          </>
         ) : studyMode === 'review' ? (
           <ReviewDrill
             items={reviewOrder}
