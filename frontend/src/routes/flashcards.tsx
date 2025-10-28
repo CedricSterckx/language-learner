@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
+import { loadUnit } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
 
 // Native TTS for Korean
@@ -86,9 +87,7 @@ function RouteComponent() {
     void (async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/vocabulary/A1/${unit}.json`);
-        if (!response.ok) throw new Error(`Failed to load deck: ${response.status}`);
-        const raw: Array<{ korean: string; english: string }> = await response.json();
+        const raw = await loadUnit(unit);
         const withIds: VocabCard[] = raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
         setCards(withIds);
       } catch (e) {
