@@ -24,7 +24,7 @@ function RouteComponent() {
             <Link key={unit.id} to='/flashcards' search={{ unit: unit.id }}>
               <Button
                 variant='outline'
-                className='w-full h-24 flex flex-col items-center justify-center space-y-2 hover:shadow-md transition-shadow'
+                className='w-full h-20 sm:h-24 flex flex-col items-center justify-center space-y-2 hover:shadow-md transition-shadow'
               >
                 <div className='text-lg font-medium'>{unit.name}</div>
                 <div className='text-sm text-muted-foreground'>{unit.description ?? 'Practice vocabulary'}</div>

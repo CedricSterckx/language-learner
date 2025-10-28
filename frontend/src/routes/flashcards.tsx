@@ -375,8 +375,8 @@ function RouteComponent() {
   return (
     <div className='min-h-dvh flex flex-col'>
       <header className='sticky top-0 z-10 border-b bg-background/80 backdrop-blur'>
-        <div className='mx-auto max-w-2xl px-4 py-3 flex items-center justify-between gap-2'>
-          <div className='flex items-center gap-4'>
+        <div className='mx-auto max-w-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2'>
+          <div className='flex items-center gap-4 min-w-0'>
             <Link to='/' className='text-sm text-muted-foreground hover:text-foreground'>
               ← Back to units
             </Link>
@@ -387,7 +387,7 @@ function RouteComponent() {
                 `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
             </div>
           </div>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-2 flex-wrap ml-auto'>
             <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
               Hangul chart
             </Button>
@@ -423,7 +423,7 @@ function RouteComponent() {
         </div>
       </header>
 
-      <main className='flex-1 mx-auto max-w-2xl w-full px-4 py-8'>
+      <main className='flex-1 mx-auto max-w-2xl w-full px-4 py-6 sm:py-8'>
         {showHangulModal && <HangulChartModal onClose={() => setShowHangulModal(false)} />}
         {studyMode === 'list' ? (
           <>
@@ -737,20 +737,20 @@ function VocabularyList(props: {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
           <h2 className='text-2xl font-semibold'>Vocabulary</h2>
           <p className='text-muted-foreground'>Browse the words or start a session</p>
         </div>
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap'>
           <div className='flex items-center gap-2'>
             <Switch checked={largeText} onCheckedChange={onToggleLargeText} />
             <span className='text-sm text-muted-foreground'>Big text</span>
           </div>
-          <Button variant='outline' onClick={onStartReview} size='lg'>
-            Review vocabulary list
+          <Button variant='outline' onClick={onStartReview} className='w-full sm:w-auto'>
+            Review list
           </Button>
-          <Button onClick={onStartCards} size='lg'>
+          <Button onClick={onStartCards} className='w-full sm:w-auto'>
             Start Flashcards
           </Button>
         </div>
@@ -795,9 +795,9 @@ function VocabularyList(props: {
                 : 'border-border bg-card'
             }`}
           >
-            <div className='flex items-center justify-between'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
               <div className='flex-1'>
-                <div className='flex items-center gap-4'>
+                <div className='flex items-center gap-3 sm:gap-4 flex-wrap'>
                   <div className='flex items-center gap-2'>
                     <Button
                       variant='ghost'
@@ -814,7 +814,7 @@ function VocabularyList(props: {
                   <div className={`${largeText ? 'text-xl md:text-2xl' : 'text-lg'}`}>{card.english}</div>
                 </div>
               </div>
-              <div className='flex items-center gap-4 text-sm text-muted-foreground'>
+              <div className='flex items-center gap-3 sm:gap-4 text-sm text-muted-foreground'>
                 <div className='flex items-center gap-2'>
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${
@@ -895,7 +895,7 @@ function ReviewDrill(props: {
       <div className='text-sm text-muted-foreground'>
         Word {index + 1} of {total}
       </div>
-      <div className={`rounded-xl border p-6 md:p-8 text-center relative ${feedbackClasses}`}>
+      <div className={`rounded-xl border p-5 sm:p-6 md:p-8 text-center relative ${feedbackClasses}`}>
         <button
           type='button'
           onClick={() => speakKorean(current.korean)}
@@ -976,7 +976,7 @@ function Flashcard(props: {
       >
         🔊
       </button>
-      <div className={`flip-card cursor-pointer`} onClick={handleClick} style={{ height: '16rem' }}>
+      <div className={`flip-card cursor-pointer h-[14rem] sm:h-[16rem] md:h-[20rem]`} onClick={handleClick}>
         <div
           className={`absolute inset-0 rounded-xl border bg-card text-card-foreground shadow-sm p-6 md:p-8 flip-face grid place-items-center`}
         >
