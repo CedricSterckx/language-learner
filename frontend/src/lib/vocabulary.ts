@@ -45,3 +45,50 @@ export async function loadUnit(unitId: string): Promise<VocabItem[]> {
   const data = Array.isArray((mod as any).default) ? (mod as any).default : mod;
   return data as VocabItem[];
 }
+
+// --- Search helpers ---
+export type SearchItem = { korean: string; english: string; unitId: string };
+
+let searchIndexPromise: Promise<SearchItem[]> | null = null;
+
+async function buildSearchIndex(): Promise<SearchItem[]> {
+  const entries = Object.entries(unitModules);
+  const results = await Promise.all(
+    entries.map(async ([path, loader]) => {
+      const unitId = getUnitIdFromPath(path);
+      const mod = (await loader()) as { default: VocabItem[] };
+      const data = Array.isArray((mod as any).default) ? (mod as any).default : (mod as any);
+      const items = (data as VocabItem[]).map((v) => ({ ...v, unitId }));
+      return items;
+    })
+  );
+  // Flatten and sort for stable output
+  return results.flat().sort((a, b) => {
+    const na = numericUnit(a.unitId) ?? Number.MAX_SAFE_INTEGER;
+    const nb = numericUnit(b.unitId) ?? Number.MAX_SAFE_INTEGER;
+    return na - nb;
+  });
+}
+
+async function ensureSearchIndex(): Promise<SearchItem[]> {
+  if (!searchIndexPromise) {
+    searchIndexPromise = buildSearchIndex();
+  }
+  return searchIndexPromise;
+}
+
+export async function searchVocabulary(query: string, limit = 50): Promise<SearchItem[]> {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const idx = await ensureSearchIndex();
+  const matches: SearchItem[] = [];
+  for (const item of idx) {
+    const k = item.korean.toLowerCase();
+    const e = item.english.toLowerCase();
+    if (k.includes(q) || e.includes(q)) {
+      matches.push(item);
+      if (matches.length >= limit) break;
+    }
+  }
+  return matches;
+}
