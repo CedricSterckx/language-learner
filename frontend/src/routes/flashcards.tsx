@@ -110,7 +110,7 @@ function RouteComponent() {
         return;
       }
       const normalized = normalizeSessionAgainstCards(saved, cards);
-      setResumeCandidate(normalized);
+      setResumeCandidate(normalized); // Will be null if no meaningful session to resume
     })();
     return () => {
       cancelled = true;
@@ -294,7 +294,7 @@ function RouteComponent() {
     setShowKoreanHint(Boolean(s.showKoreanHint));
   }
 
-  function normalizeSessionAgainstCards(s: SessionStateV1, available: VocabCard[]): SessionStateV1 {
+  function normalizeSessionAgainstCards(s: SessionStateV1, available: VocabCard[]): SessionStateV1 | null {
     const validIds = new Set(available.map((c) => c.id));
     const filteredOrder = (s.reviewOrderIds ?? []).filter((id) => validIds.has(id));
     const currentOk = s.currentId && validIds.has(s.currentId) ? s.currentId : null;
@@ -305,6 +305,12 @@ function RouteComponent() {
     if (studyMode === 'review' && filteredOrder.length === 0) {
       studyMode = 'list';
     }
+
+    // If the session has been downgraded to 'list' mode and has no meaningful state, return null
+    if (studyMode === 'list' && !currentOk) {
+      return null;
+    }
+
     return {
       ...s,
       currentId: currentOk,
