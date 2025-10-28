@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { HangulChartModal } from '@/components/HangulChartModal';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { getUnitsMeta, searchVocabulary, type SearchItem } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
@@ -15,6 +16,7 @@ function RouteComponent() {
   const [debounced, setDebounced] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [searching, setSearching] = useState(false);
+  const [showHangulModal, setShowHangulModal] = useState(false);
 
   const unitNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -51,11 +53,18 @@ function RouteComponent() {
   return (
     <div className='min-h-dvh grid place-items-center p-6'>
       <div className='text-center space-y-8 max-w-2xl w-full'>
-        <div className='space-y-2'>
-          <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
-          <p className='text-muted-foreground'>
-            Practice your vocabulary with spaced repetition. Select a unit to begin.
-          </p>
+        <div className='space-y-4'>
+          <div className='space-y-2'>
+            <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
+            <p className='text-muted-foreground'>
+              Practice your vocabulary with spaced repetition. Select a unit to begin.
+            </p>
+          </div>
+          <div className='flex justify-center'>
+            <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
+              📚 Korean Alphabet
+            </Button>
+          </div>
         </div>
 
         <div className='text-left space-y-2'>
@@ -114,6 +123,7 @@ function RouteComponent() {
           Each unit contains vocabulary cards with Korean-English pairs
         </div>
       </div>
+      {showHangulModal && <HangulChartModal onClose={() => setShowHangulModal(false)} />}
     </div>
   );
 }
