@@ -28,16 +28,6 @@ type VocabCard = {
   id: string;
 };
 
-type CardProgress = {
-  ease: number;
-  intervalMs: number;
-  repetitions: number;
-  dueAtMs: number;
-  lapses: number;
-};
-
-type ProgressMap = Record<string, CardProgress>;
-
 type Quality = 'again' | 'hard' | 'good' | 'easy';
 
 type Settings = {
@@ -46,7 +36,11 @@ type Settings = {
   largeListText: boolean;
 };
 
-const DEFAULT_SETTINGS: Settings = { promptSide: 'korean', typingMode: false, largeListText: false };
+const DEFAULT_SETTINGS: Settings = {
+  promptSide: 'korean',
+  typingMode: false,
+  largeListText: false,
+};
 
 export const Route = createFileRoute('/flashcards')({
   component: RouteComponent,
@@ -62,12 +56,10 @@ function RouteComponent() {
   const [cards, setCards] = useState<VocabCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<ProgressMap>(() => loadProgress(unit));
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [showReverse, setShowReverse] = useState(false);
-  const [allowFuture, setAllowFuture] = useState(false);
   const [studyMode, setStudyMode] = useState<'list' | 'cards' | 'review'>('list');
   const [typedAnswer, setTypedAnswer] = useState('');
   const [answerFeedback, setAnswerFeedback] = useState<'correct' | 'incorrect' | null>(null);
@@ -79,8 +71,12 @@ function RouteComponent() {
   const [reviewFeedback, setReviewFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
   const [showKoreanHint, setShowKoreanHint] = useState(false);
   const [showHangulModal, setShowHangulModal] = useState(false);
+  // queue-based drill state
+  const [sessionQueue, setSessionQueue] = useState<string[]>([]);
+  const [queueIndex, setQueueIndex] = useState(0);
+  // track cards marked Easy to tint list items
+  const [easySet, setEasySet] = useState<Set<string>>(() => loadEasySet(unit));
 
-  const STORAGE_KEY_PROGRESS = `flashcards:${unit}:progress`;
   const storage = useMemo(() => getStorageProvider(), []);
   const [resumeCandidate, setResumeCandidate] = useState<SessionStateV1 | null>(null);
 
@@ -119,16 +115,19 @@ function RouteComponent() {
   }, [unit, loading, cards, storage]);
 
   useEffect(() => {
-    setProgress(loadProgress(unit));
-  }, [unit]);
-
-  useEffect(() => {
-    saveProgress(progress, STORAGE_KEY_PROGRESS);
-  }, [progress, STORAGE_KEY_PROGRESS]);
-
-  useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  // Reload easySet on unit change
+  useEffect(() => {
+    setEasySet(loadEasySet(unit));
+  }, [unit]);
+
+  // Persist easySet (debounced)
+  useEffect(() => {
+    const timer = window.setTimeout(() => saveEasySet(unit, easySet), 300);
+    return () => window.clearTimeout(timer);
+  }, [unit, easySet]);
 
   // Autosave session (debounced)
   useEffect(() => {
@@ -141,7 +140,6 @@ function RouteComponent() {
       currentId,
       showAnswer,
       showReverse,
-      allowFuture,
       typedAnswer,
       answerFeedback,
       reviewOrderIds,
@@ -149,6 +147,8 @@ function RouteComponent() {
       reviewInput,
       reviewFeedback,
       showKoreanHint,
+      queueIds: sessionQueue,
+      queueIndex,
       updatedAt: Date.now(),
     };
     const timer = window.setTimeout(() => {
@@ -161,7 +161,6 @@ function RouteComponent() {
     currentId,
     showAnswer,
     showReverse,
-    allowFuture,
     typedAnswer,
     answerFeedback,
     reviewOrder,
@@ -171,52 +170,87 @@ function RouteComponent() {
     showKoreanHint,
     cards,
     storage,
+    sessionQueue,
+    queueIndex,
   ]);
 
-  const now = Date.now();
-
-  const { nextCard, dueCount, totalCount, nextDueInMs, hasFutureOnly } = useMemo(() => {
-    if (cards.length === 0)
-      return { nextCard: undefined, dueCount: 0, totalCount: 0, nextDueInMs: 0, hasFutureOnly: false };
-    const enriched = cards
-      .map((c) => ({ card: c, p: progress[c.id] }))
-      .map(({ card, p }) => ({
-        card,
-        dueAtMs: p?.dueAtMs ?? 0,
-      }))
-      .sort((a, b) => a.dueAtMs - b.dueAtMs);
-
-    const dueNow = enriched.filter((e) => e.dueAtMs <= now);
-    const next = (allowFuture ? enriched : dueNow)[0]?.card;
-    const nextDue = enriched[0]?.dueAtMs ?? 0;
+  const gradeHints = useMemo(() => {
     return {
-      nextCard: next,
-      dueCount: dueNow.length,
-      totalCount: cards.length,
-      nextDueInMs: Math.max(0, nextDue - now),
-      hasFutureOnly: dueNow.length === 0 && enriched.length > 0,
-    };
-  }, [cards, progress, now, allowFuture]);
+      again: 'add back: +2',
+      hard: 'add back: +5',
+      good: 'add back: end',
+      easy: 'remove',
+    } as const;
+  }, []);
+
+  const totalCount = cards.length;
 
   useEffect(() => {
-    if (nextCard && studyMode === 'cards') {
-      setCurrentId(nextCard.id);
+    if (studyMode === 'list') {
+      setCurrentId(null);
+    }
+  }, [studyMode]);
+
+  function handleGrade(quality: Quality) {
+    return handleGradeQueue(quality);
+  }
+
+  function startCards() {
+    setStudyMode('cards');
+    const shuffled = shuffleArray(cards.map((c) => c.id));
+    setSessionQueue(shuffled);
+    setQueueIndex(0);
+    setCurrentId(shuffled[0] ?? null);
+    setShowAnswer(false);
+    setShowReverse(false);
+    setTypedAnswer('');
+    setAnswerFeedback(null);
+  }
+
+  function handleGradeQueue(quality: Quality) {
+    if (!currentId) return;
+    const q = sessionQueue.slice();
+    const idx = Math.min(queueIndex, Math.max(0, q.length - 1));
+    let removeAt = idx < q.length && q[idx] === currentId ? idx : q.indexOf(currentId);
+    if (removeAt >= 0) q.splice(removeAt, 1);
+
+    const insertAhead = (n: number) => Math.min((removeAt >= 0 ? removeAt : idx) + n, q.length);
+    switch (quality) {
+      case 'again':
+        q.splice(insertAhead(2), 0, currentId);
+        // remove from easy set if user struggled
+        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+        break;
+      case 'hard':
+        q.splice(insertAhead(5), 0, currentId);
+        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+        break;
+      case 'good':
+        q.push(currentId);
+        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+        break;
+      case 'easy':
+        // drop from queue
+        setEasySet((prev) => new Set(prev).add(currentId));
+        break;
+    }
+
+    if (q.length === 0) {
+      setSessionQueue([]);
+      setQueueIndex(0);
+      setCurrentId(null);
+      setStudyMode('list');
       setShowAnswer(false);
       setShowReverse(false);
       setTypedAnswer('');
       setAnswerFeedback(null);
-    } else if (studyMode === 'list') {
-      setCurrentId(null);
+      return;
     }
-  }, [nextCard, studyMode]);
 
-  function handleGrade(quality: Quality) {
-    if (!currentId) return;
-    const currentCard = cards.find((c) => c.id === currentId);
-    if (!currentCard) return;
-    const current = progress[currentId] ?? createInitialProgress();
-    const updated = schedule(current, quality, Date.now());
-    setProgress((prev) => ({ ...prev, [currentId]: updated }));
+    const nextIdx = Math.min(removeAt, q.length - 1);
+    setSessionQueue(q);
+    setQueueIndex(Math.max(0, nextIdx));
+    setCurrentId(q[Math.max(0, nextIdx)]);
     setShowAnswer(false);
     setShowReverse(false);
     setTypedAnswer('');
@@ -255,8 +289,10 @@ function RouteComponent() {
   }
 
   function handleResetProgress() {
-    setProgress({});
-    setAllowFuture(false);
+    // Clear queue and UI state
+    setSessionQueue([]);
+    setQueueIndex(0);
+    setCurrentId(null);
     setShowAnswer(false);
     setShowReverse(false);
   }
@@ -282,7 +318,7 @@ function RouteComponent() {
     setCurrentId(s.currentId ?? null);
     setShowAnswer(Boolean(s.showAnswer));
     setShowReverse(Boolean(s.showReverse));
-    setAllowFuture(Boolean(s.allowFuture));
+    // no allowFuture in queue-only mode
     setTypedAnswer(s.typedAnswer ?? '');
     setAnswerFeedback(s.answerFeedback ?? null);
     // Rebuild review order from IDs
@@ -293,6 +329,10 @@ function RouteComponent() {
     setReviewInput(s.reviewInput ?? '');
     setReviewFeedback(s.reviewFeedback ?? 'idle');
     setShowKoreanHint(Boolean(s.showKoreanHint));
+    // Restore queue state
+    const filteredQueue = (s.queueIds ?? []).filter((id) => idToCard.has(id));
+    setSessionQueue(filteredQueue);
+    setQueueIndex(Math.min(Math.max(0, s.queueIndex ?? 0), Math.max(0, filteredQueue.length - 1)));
   }
 
   function normalizeSessionAgainstCards(s: SessionStateV1, available: VocabCard[]): SessionStateV1 | null {
@@ -307,6 +347,14 @@ function RouteComponent() {
       studyMode = 'list';
     }
 
+    // Normalize queue state
+    const filteredQueue = (s.queueIds ?? []).filter((id) => validIds.has(id));
+    let queueIndex = Math.min(Math.max(0, s.queueIndex ?? 0), Math.max(0, filteredQueue.length - 1));
+    if (filteredQueue.length === 0) {
+      // no queue to restore, fallback to list
+      studyMode = 'list';
+    }
+
     // If the session has been downgraded to 'list' mode and has no meaningful state, return null
     if (studyMode === 'list' && !currentOk) {
       return null;
@@ -316,6 +364,8 @@ function RouteComponent() {
       ...s,
       currentId: currentOk,
       reviewOrderIds: filteredOrder,
+      queueIds: filteredQueue,
+      queueIndex,
       studyMode,
     };
   }
@@ -389,18 +439,16 @@ function RouteComponent() {
             </Link>
             <div className='text-sm text-muted-foreground'>
               {studyMode === 'list' && `Vocabulary List (${totalCount} words)`}
-              {studyMode === 'cards' && `Due: ${dueCount} / ${totalCount}`}
+              {studyMode === 'cards' &&
+                `Queue: ${Math.min(queueIndex + 1, Math.max(1, sessionQueue.length))} / ${sessionQueue.length}`}
               {studyMode === 'review' &&
                 `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
             </div>
           </div>
           <div className='flex items-center gap-2 flex-wrap ml-auto'>
             <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
-              Korean Alphabet
+              Korean Alphabet (Hangul)
             </Button>
-            {studyMode === 'cards' && hasFutureOnly && (
-              <span className='text-xs text-muted-foreground'>Next in {formatDuration(nextDueInMs)}</span>
-            )}
             {studyMode === 'cards' && (
               <>
                 <Button variant='outline' size='sm' onClick={togglePromptSide}>
@@ -423,9 +471,11 @@ function RouteComponent() {
                 </Button>
               </>
             )}
-            <Button variant='outline' size='sm' onClick={handleResetProgress}>
-              Reset
-            </Button>
+            {studyMode !== 'list' && (
+              <Button variant='outline' size='sm' onClick={handleResetProgress}>
+                Reset
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -434,28 +484,16 @@ function RouteComponent() {
         {showHangulModal && <HangulChartModal onClose={() => setShowHangulModal(false)} />}
         {studyMode === 'list' ? (
           <>
-            {resumeCandidate && (
-              <div className='mb-6 rounded-lg border p-4 bg-muted/40 flex items-center justify-between gap-3'>
-                <div className='text-sm text-muted-foreground'>
-                  You have a previous session. Resume where you left off?
-                </div>
-                <div className='flex gap-2'>
-                  <Button size='sm' onClick={handleResume}>
-                    Resume
-                  </Button>
-                  <Button size='sm' variant='outline' onClick={handleClearSession}>
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
             <VocabularyList
               cards={cards}
-              progress={progress}
               largeText={settings.largeListText}
               onToggleLargeText={toggleLargeListText}
-              onStartCards={() => setStudyMode('cards')}
+              onStartCards={startCards}
               onStartReview={startReview}
+              hasResume={Boolean(resumeCandidate)}
+              onResume={handleResume}
+              onReset={handleClearSession}
+              easySet={easySet}
             />
           </>
         ) : studyMode === 'review' ? (
@@ -506,16 +544,53 @@ function RouteComponent() {
                     </div>
                   </div>
                 )}
-                <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
-                  <Button variant='destructive' onClick={() => handleGrade('again')}>
-                    Again
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                  <Button
+                    size='lg'
+                    variant='destructive'
+                    onClick={() => handleGrade('again')}
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                  >
+                    <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
+                    <div className='flex flex-col leading-tight items-center'>
+                      <span className='text-lg md:text-xl font-semibold text-white'>Again</span>
+                      <span className='text-xs text-white/90'>{gradeHints.again}</span>
+                    </div>
                   </Button>
-                  <Button variant='outline' onClick={() => handleGrade('hard')}>
-                    Hard
+                  <Button
+                    size='lg'
+                    variant='outline'
+                    onClick={() => handleGrade('hard')}
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                  >
+                    <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
+                    <div className='flex flex-col leading-tight items-center'>
+                      <span className='text-lg md:text-xl font-semibold'>Hard</span>
+                      <span className='text-xs text-muted-foreground'>{gradeHints.hard}</span>
+                    </div>
                   </Button>
-                  <Button onClick={() => handleGrade('good')}>Good</Button>
-                  <Button variant='secondary' onClick={() => handleGrade('easy')}>
-                    Easy
+                  <Button
+                    size='lg'
+                    onClick={() => handleGrade('good')}
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                  >
+                    <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
+                    <div className='flex flex-col leading-tight items-center'>
+                      <span className='text-lg md:text-xl font-semibold text-white'>Good</span>
+                      <span className='text-xs text-white/90'>{gradeHints.good}</span>
+                    </div>
+                  </Button>
+                  <Button
+                    size='lg'
+                    variant='secondary'
+                    onClick={() => handleGrade('easy')}
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                  >
+                    <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
+                    <div className='flex flex-col leading-tight items-center'>
+                      <span className='text-lg md:text-xl font-semibold'>Easy</span>
+                      <span className='text-xs text-muted-foreground'>{gradeHints.easy}</span>
+                    </div>
                   </Button>
                 </div>
               </div>
@@ -535,22 +610,12 @@ function RouteComponent() {
                 <Button className='w-full' onClick={handleTypedAnswer} disabled={!typedAnswer.trim()}>
                   Check Answer
                 </Button>
-                {hasFutureOnly && (
-                  <Button variant='outline' onClick={() => setAllowFuture(true)}>
-                    Study ahead
-                  </Button>
-                )}
               </div>
             ) : (
               <div className='flex gap-3'>
                 <Button className='flex-1' onClick={() => setShowAnswer(true)}>
                   Show answer
                 </Button>
-                {hasFutureOnly && (
-                  <Button variant='outline' onClick={() => setAllowFuture(true)}>
-                    Study ahead
-                  </Button>
-                )}
               </div>
             )}
           </div>
@@ -558,14 +623,7 @@ function RouteComponent() {
           <div className='min-h-[60dvh] grid place-items-center'>
             <div className='text-center space-y-3'>
               <div className='text-xl'>All caught up 🎉</div>
-              {hasFutureOnly && (
-                <div className='text-sm text-muted-foreground'>Next card in {formatDuration(nextDueInMs)}</div>
-              )}
-              {hasFutureOnly && (
-                <Button onClick={() => setAllowFuture(true)} variant='outline'>
-                  Study ahead
-                </Button>
-              )}
+
               <Button onClick={() => setStudyMode('list')} variant='outline'>
                 Back to list
               </Button>
@@ -579,27 +637,27 @@ function RouteComponent() {
 
 function VocabularyList(props: {
   cards: VocabCard[];
-  progress: ProgressMap;
   largeText: boolean;
   onToggleLargeText: (checked: boolean) => void;
   onStartCards: () => void;
   onStartReview: () => void;
+  hasResume: boolean;
+  onResume: () => void;
+  onReset: () => void;
+  easySet: Set<string>;
 }) {
-  const { cards, progress, largeText, onToggleLargeText, onStartCards, onStartReview } = props;
+  const { cards, largeText, onToggleLargeText, onStartCards, onStartReview, hasResume, onResume, onReset, easySet } =
+    props;
 
-  const now = Date.now();
+  const total = cards.length;
+  const easyCount = easySet.size;
+  const percent = total > 0 ? Math.round((easyCount / total) * 100) : 0;
+
   const cardsWithStatus = cards.map((card) => {
-    const cardProgress = progress[card.id];
-    const isDue = !cardProgress || cardProgress.dueAtMs <= now;
-    const nextReview = cardProgress ? formatDuration(Math.max(0, cardProgress.dueAtMs - now)) : 'now';
-
     return {
       ...card,
-      isDue,
-      nextReview,
-      repetitions: cardProgress?.repetitions ?? 0,
-      lapses: cardProgress?.lapses ?? 0,
-    };
+      isEasy: easySet.has(card.id),
+    } as VocabCard & { isEasy: boolean };
   });
 
   return (
@@ -610,6 +668,9 @@ function VocabularyList(props: {
           <p className='text-muted-foreground'>Browse the words or start a session</p>
         </div>
         <div className='flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap'>
+          <div className='flex items-center gap-3 pr-1'>
+            <CircularProgress value={percent} label={`${easyCount}/${total}`} size={56} strokeWidth={8} />
+          </div>
           <div className='flex items-center gap-2'>
             <Switch checked={largeText} onCheckedChange={onToggleLargeText} />
             <span className='text-sm text-muted-foreground'>Big text</span>
@@ -617,48 +678,28 @@ function VocabularyList(props: {
           <Button variant='outline' onClick={onStartReview} className='w-full sm:w-auto'>
             Practice Vocabulary
           </Button>
-          <Button onClick={onStartCards} className='w-full sm:w-auto'>
-            Start Flashcards
+          {hasResume ? (
+            <Button onClick={onResume} className='w-full sm:w-auto'>
+              Resume Flashcards
+            </Button>
+          ) : (
+            <Button onClick={onStartCards} className='w-full sm:w-auto'>
+              Start Flashcards
+            </Button>
+          )}
+          <Button variant='outline' onClick={onReset} className='w-full sm:w-auto'>
+            Start New Session
           </Button>
         </div>
       </div>
-
-      <details className='rounded-lg border bg-muted/30 p-4'>
-        <summary className='cursor-pointer font-medium'>How the flashcard scheduling works</summary>
-        <div className='mt-3 text-sm text-muted-foreground space-y-2'>
-          <p>
-            Each card is scheduled using spaced repetition. After you see a card, choose one of the four ratings. Your
-            choice sets the next review time:
-          </p>
-          <ul className='list-disc pl-5 space-y-1'>
-            <li>
-              <span className='font-medium'>Again</span>: ~10s; ease decreases and repetitions reset.
-            </li>
-            <li>
-              <span className='font-medium'>Hard</span>: about previous interval × 1.2 (at least 1 minute).
-            </li>
-            <li>
-              <span className='font-medium'>Good</span>: first time in 5 minutes; later by ease (min 2 minutes).
-            </li>
-            <li>
-              <span className='font-medium'>Easy</span>: first time in 10 minutes; later interval × ease × 1.3 (min 5
-              minutes).
-            </li>
-          </ul>
-          <p>
-            Cards marked <span className='font-medium'>Due</span> are ready now. You can "Study ahead" to see future
-            cards, and use "Reset" to clear progress.
-          </p>
-        </div>
-      </details>
 
       <div className='grid gap-3'>
         {cardsWithStatus.map((card) => (
           <div
             key={card.id}
             className={`rounded-lg border p-4 transition-all duration-200 ease-in-out hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/50 cursor-pointer ${
-              card.isDue
-                ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950'
+              card.isEasy
+                ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'
                 : 'border-border bg-card'
             }`}
           >
@@ -681,29 +722,51 @@ function VocabularyList(props: {
                   <div className={`${largeText ? 'text-xl md:text-2xl' : 'text-lg'}`}>{card.english}</div>
                 </div>
               </div>
-              <div className='flex items-center gap-3 sm:gap-4 text-sm text-muted-foreground'>
-                <div className='flex items-center gap-2'>
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      card.isDue
-                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    }`}
-                  >
-                    {card.isDue ? 'Due' : 'Next: ' + card.nextReview}
-                  </span>
-                </div>
-                {card.repetitions > 0 && (
-                  <div className='flex items-center gap-1'>
-                    <span>✓{card.repetitions}</span>
-                    {card.lapses > 0 && <span className='text-red-500'>✗{card.lapses}</span>}
-                  </div>
-                )}
-              </div>
+              <div className='flex items-center gap-3 sm:gap-4 text-sm text-muted-foreground' />
             </div>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CircularProgress(props: { value: number; label: string; size?: number; strokeWidth?: number }) {
+  const { value, label, size = 64, strokeWidth = 8 } = props;
+  const clamped = Math.max(0, Math.min(100, value));
+  const r = (size - strokeWidth) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (c * clamped) / 100;
+  const offset = c - dash;
+  const center = size / 2;
+
+  return (
+    <div className='relative' style={{ width: size, height: size }} aria-label={`Progress ${clamped}%`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className='block'>
+        <circle
+          cx={center}
+          cy={center}
+          r={r}
+          strokeWidth={strokeWidth}
+          stroke='currentColor'
+          className='text-muted-foreground/30'
+          fill='none'
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={r}
+          strokeWidth={strokeWidth}
+          stroke='currentColor'
+          className='text-primary'
+          fill='none'
+          strokeLinecap='round'
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 300ms ease' }}
+        />
+      </svg>
+      <div className='absolute inset-0 grid place-items-center text-sm font-medium text-primary'>{label}</div>
     </div>
   );
 }
@@ -878,86 +941,6 @@ function Flashcard(props: {
   );
 }
 
-function createInitialProgress(): CardProgress {
-  return {
-    ease: 2.5,
-    intervalMs: 0,
-    repetitions: 0,
-    dueAtMs: 0,
-    lapses: 0,
-  };
-}
-
-function schedule(prev: CardProgress, quality: Quality, nowMs: number): CardProgress {
-  const easeMin = 1.3;
-  const clampEase = (v: number) => Math.max(easeMin, Math.min(3.0, v));
-
-  let ease = prev.ease;
-  let interval = prev.intervalMs;
-  let repetitions = prev.repetitions;
-  let lapses = prev.lapses;
-
-  switch (quality) {
-    case 'again': {
-      ease = clampEase(ease - 0.2);
-      interval = 10_000; // 10s
-      repetitions = 0;
-      lapses += 1;
-      break;
-    }
-    case 'hard': {
-      ease = clampEase(ease - 0.15);
-      interval = Math.max(60_000, Math.round((interval || 30_000) * 1.2));
-      break;
-    }
-    case 'good': {
-      if (repetitions === 0) {
-        interval = 5 * 60_000; // 5m
-      } else {
-        interval = Math.round(Math.max(2 * 60_000, (interval || 60_000) * ease));
-      }
-      repetitions = Math.max(1, repetitions + 1);
-      break;
-    }
-    case 'easy': {
-      ease = clampEase(ease + 0.05);
-      if (repetitions === 0) {
-        interval = 10 * 60_000; // 10m
-      } else {
-        interval = Math.round(Math.max(5 * 60_000, (interval || 60_000) * ease * 1.3));
-      }
-      repetitions = Math.max(1, repetitions + 1);
-      break;
-    }
-  }
-
-  return {
-    ease,
-    intervalMs: interval,
-    repetitions,
-    dueAtMs: nowMs + interval,
-    lapses,
-  };
-}
-
-function loadProgress(unit: string): ProgressMap {
-  try {
-    const storageKey = `flashcards:${unit}:progress`;
-    const raw = localStorage.getItem(storageKey);
-    return raw ? (JSON.parse(raw) as ProgressMap) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveProgress(map: ProgressMap, storageKey: string) {
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(map));
-  } catch {
-    // ignore
-  }
-}
-
 function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem('flashcards:settings');
@@ -975,14 +958,22 @@ function saveSettings(s: Settings) {
   }
 }
 
-function formatDuration(ms: number): string {
-  if (ms <= 0) return 'now';
-  const sec = Math.round(ms / 1000);
-  if (sec < 60) return `${sec}s`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m`;
-  const hr = Math.round(min / 60);
-  return `${hr}h`;
+function loadEasySet(unit: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`flashcards:${unit}:easy`);
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    return new Set(arr);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveEasySet(unit: string, set: Set<string>) {
+  try {
+    localStorage.setItem(`flashcards:${unit}:easy`, JSON.stringify(Array.from(set)));
+  } catch {
+    // ignore
+  }
 }
 
 function shuffleArray<T>(arr: T[]): T[] {

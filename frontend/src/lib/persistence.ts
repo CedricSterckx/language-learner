@@ -10,7 +10,6 @@ export interface SessionStateV1 {
   currentId: string | null;
   showAnswer: boolean;
   showReverse: boolean;
-  allowFuture: boolean;
   typedAnswer: string;
   answerFeedback: AnswerFeedback;
   reviewOrderIds: string[];
@@ -18,6 +17,9 @@ export interface SessionStateV1 {
   reviewInput: string;
   reviewFeedback: ReviewFeedback;
   showKoreanHint: boolean;
+  // Queue-based drill mode
+  queueIds?: string[];
+  queueIndex?: number;
   updatedAt: number;
 }
 
@@ -45,7 +47,6 @@ export class LocalStorageProvider implements StorageProvider {
         currentId: (parsed.currentId as string | null) ?? null,
         showAnswer: Boolean(parsed.showAnswer),
         showReverse: Boolean(parsed.showReverse),
-        allowFuture: Boolean(parsed.allowFuture),
         typedAnswer: String(parsed.typedAnswer ?? ''),
         answerFeedback: (parsed.answerFeedback as AnswerFeedback) ?? null,
         reviewOrderIds: Array.isArray(parsed.reviewOrderIds) ? (parsed.reviewOrderIds as string[]) : [],
@@ -53,6 +54,8 @@ export class LocalStorageProvider implements StorageProvider {
         reviewInput: String(parsed.reviewInput ?? ''),
         reviewFeedback: (parsed.reviewFeedback as ReviewFeedback) ?? 'idle',
         showKoreanHint: Boolean(parsed.showKoreanHint),
+        queueIds: Array.isArray(parsed.queueIds) ? (parsed.queueIds as string[]) : [],
+        queueIndex: Number.isFinite(parsed.queueIndex) ? Number(parsed.queueIndex) : 0,
         updatedAt: Number.isFinite(parsed.updatedAt) ? Number(parsed.updatedAt) : Date.now(),
       };
     } catch {

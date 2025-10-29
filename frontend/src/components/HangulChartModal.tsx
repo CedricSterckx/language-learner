@@ -139,3 +139,4 @@ export function HangulChartModal(props: { onClose: () => void }) {
     </div>
   );
 }
+

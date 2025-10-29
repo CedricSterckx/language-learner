@@ -62,7 +62,7 @@ function RouteComponent() {
           </div>
           <div className='flex justify-center'>
             <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
-              📚 Korean Alphabet
+              📚 Korean Alphabet (Hangul)
             </Button>
           </div>
         </div>
