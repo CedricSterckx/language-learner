@@ -1,0 +1,3 @@
+I would like to add a backend in Golang (Go) to go from the localstorage to my own database. I would like to allow users to login via google and handle the users like this. Please make me a plan on how to handle this and all the possible api calls that will be needed. For the database we will use a sqlite database. 
+create a multi stage plan on how to execute all this in the best way possible. 
+Ask me more questions if you need more context. Be concise in your plan you can sacrifice grammar forthe sake of being concise
