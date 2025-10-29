@@ -384,7 +384,7 @@ function RouteComponent() {
   function submitReview() {
     const current = reviewOrder[reviewIndex];
     if (!current) return;
-    const expected = current.korean.trim();
+    const expected = showKoreanHint ? current.english.trim() : current.korean.trim();
     const user = reviewInput.trim();
     if (!user) return;
     if (user === expected) {
@@ -464,7 +464,9 @@ function RouteComponent() {
               <>
                 <div className='flex items-center gap-2'>
                   <Switch checked={showKoreanHint} onCheckedChange={setShowKoreanHint} />
-                  <span className='text-sm text-muted-foreground'>Show Korean</span>
+                  <span className='text-sm text-muted-foreground'>
+                    Direction: {showKoreanHint ? '한국어 → English' : 'English → 한국어'}
+                  </span>
                 </div>
                 <Button variant='outline' size='sm' onClick={exitReview}>
                   Exit review
@@ -836,9 +838,12 @@ function ReviewDrill(props: {
           🔊
         </button>
         <div className='space-y-2'>
-          <div className='text-3xl md:text-4xl font-semibold tracking-tight'>{current.english}</div>
-          {showKorean && <div className='text-2xl md:text-3xl font-medium text-muted-foreground'>{current.korean}</div>}
-          <div className='text-sm text-muted-foreground'>Type the Korean translation</div>
+          <div className='text-3xl md:text-4xl font-semibold tracking-tight'>
+            {showKorean ? current.korean : current.english}
+          </div>
+          <div className='text-sm text-muted-foreground'>
+            {showKorean ? 'Type the English translation' : 'Type the Korean translation'}
+          </div>
         </div>
       </div>
 
@@ -849,7 +854,7 @@ function ReviewDrill(props: {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && input.trim()) onSubmit();
           }}
-          placeholder='한국어로 입력하세요…'
+          placeholder={showKorean ? 'Type in English…' : '한국어로 입력하세요…'}
           autoFocus
         />
         <div className='flex gap-2'>
