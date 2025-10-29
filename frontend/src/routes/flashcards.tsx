@@ -490,8 +490,8 @@ function RouteComponent() {
               onToggleLargeText={toggleLargeListText}
               onStartCards={startCards}
               onStartReview={startReview}
-              hasResume={Boolean(resumeCandidate)}
-              onResume={handleResume}
+              hasResume={Boolean(resumeCandidate) || easySet.size > 0}
+              onResume={resumeCandidate ? handleResume : startCards}
               onReset={handleClearSession}
               easySet={easySet}
             />
