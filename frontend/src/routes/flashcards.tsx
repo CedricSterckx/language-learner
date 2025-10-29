@@ -724,7 +724,7 @@ function VocabularyList(props: {
             <span className='text-sm text-muted-foreground'>Big text</span>
           </div>
           <Button variant='outline' onClick={onStartReview} className='w-full sm:w-auto'>
-            Practice Vocabulary
+            Practice Vocabulary with typing
           </Button>
           {hasResume ? (
             <Button onClick={onResume} className='w-full sm:w-auto'>
