@@ -71,6 +71,7 @@ function RouteComponent() {
   const [reviewFeedback, setReviewFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
   const [showKoreanHint, setShowKoreanHint] = useState(false);
   const [showHangulModal, setShowHangulModal] = useState(false);
+  const [reviewRevealed, setReviewRevealed] = useState(false);
   // queue-based drill state
   const [sessionQueue, setSessionQueue] = useState<string[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
@@ -147,6 +148,7 @@ function RouteComponent() {
       reviewInput,
       reviewFeedback,
       showKoreanHint,
+      reviewRevealed,
       queueIds: sessionQueue,
       queueIndex,
       updatedAt: Date.now(),
@@ -168,6 +170,7 @@ function RouteComponent() {
     reviewInput,
     reviewFeedback,
     showKoreanHint,
+    reviewRevealed,
     cards,
     storage,
     sessionQueue,
@@ -329,6 +332,7 @@ function RouteComponent() {
     setReviewInput(s.reviewInput ?? '');
     setReviewFeedback(s.reviewFeedback ?? 'idle');
     setShowKoreanHint(Boolean(s.showKoreanHint));
+    setReviewRevealed(Boolean(s.reviewRevealed));
     // Restore queue state
     const filteredQueue = (s.queueIds ?? []).filter((id) => idToCard.has(id));
     setSessionQueue(filteredQueue);
@@ -395,6 +399,7 @@ function RouteComponent() {
         setReviewIndex(nextIdx);
         setReviewInput('');
         setReviewFeedback('idle');
+        setReviewRevealed(false);
       }, 300);
     } else {
       setReviewFeedback('incorrect');
@@ -407,6 +412,24 @@ function RouteComponent() {
     setReviewIndex(0);
     setReviewInput('');
     setReviewFeedback('idle');
+    setReviewRevealed(false);
+  }
+
+  function skipRevealed() {
+    const current = reviewOrder[reviewIndex];
+    if (!current) return;
+    const newOrder = reviewOrder.slice();
+    // remove current at index
+    newOrder.splice(reviewIndex, 1);
+    // reinsert 5-10 ahead
+    const ahead = 5 + Math.floor(Math.random() * 6); // 5..10
+    const insertAt = Math.min(reviewIndex + ahead, newOrder.length);
+    newOrder.splice(insertAt, 0, current);
+    setReviewOrder(newOrder);
+    // stay at same index to show next item
+    setReviewRevealed(false);
+    setReviewFeedback('idle');
+    setReviewInput('');
   }
 
   if (loading) {
@@ -508,6 +531,9 @@ function RouteComponent() {
             onSubmit={submitReview}
             onExit={exitReview}
             showKorean={showKoreanHint}
+            revealed={reviewRevealed}
+            onReveal={() => setReviewRevealed(true)}
+            onSkip={skipRevealed}
           />
         ) : card ? (
           <div className='space-y-6'>
@@ -782,8 +808,11 @@ function ReviewDrill(props: {
   onSubmit: () => void;
   onExit: () => void;
   showKorean: boolean;
+  revealed: boolean;
+  onReveal: () => void;
+  onSkip: () => void;
 }) {
-  const { items, index, input, feedback, setInput, onSubmit, onExit, showKorean } = props;
+  const { items, index, input, feedback, setInput, onSubmit, onExit, showKorean, revealed, onReveal, onSkip } = props;
   const total = items.length;
   const done = index >= total;
   const current = items[index];
@@ -827,51 +856,60 @@ function ReviewDrill(props: {
       <div className='text-sm text-muted-foreground'>
         Word {index + 1} of {total}
       </div>
-      <div className={`rounded-xl border p-5 sm:p-6 md:p-8 text-center relative ${feedbackClasses}`}>
-        <button
-          type='button'
-          onClick={() => speakKorean(current.korean)}
-          className='absolute top-4 right-4 text-2xl hover:scale-110 transition-transform'
-          aria-label='Speak Korean word'
-          title='Play pronunciation'
-        >
-          🔊
-        </button>
-        <div className='space-y-2'>
-          <div className='text-3xl md:text-4xl font-semibold tracking-tight'>
-            {showKorean ? current.korean : current.english}
-          </div>
-          <div className='text-sm text-muted-foreground'>
-            {showKorean ? 'Type the English translation' : 'Type the Korean translation'}
-          </div>
+      <div className={`rounded-xl border p-4 md:p-6 text-center relative ${feedbackClasses}`}>
+        <Flashcard
+          prompt={showKorean ? current.korean : current.english}
+          answer={showKorean ? current.english : current.korean}
+          revealed={revealed}
+          showReverse={!revealed}
+          onReveal={onReveal}
+          onToggleReverse={onReveal}
+          onSpeakKorean={() => speakKorean(current.korean)}
+        />
+        <div className='mt-3 text-sm text-muted-foreground'>
+          {showKorean ? 'Type the English translation' : 'Type the Korean translation'}
         </div>
       </div>
 
-      <div className='space-y-3'>
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && input.trim()) onSubmit();
-          }}
-          placeholder={showKorean ? 'Type in English…' : '한국어로 입력하세요…'}
-          autoFocus
-        />
+      {!revealed ? (
+        <div className='space-y-3'>
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && input.trim()) onSubmit();
+            }}
+            placeholder={showKorean ? 'Type in English…' : '한국어로 입력하세요…'}
+            autoFocus
+          />
+          <div className='flex gap-2 flex-wrap'>
+            <Button className='flex-1' onClick={onSubmit} disabled={!input.trim()}>
+              Check
+            </Button>
+            <Button variant='outline' onClick={onReveal}>
+              Show Answer
+            </Button>
+            <Button variant='outline' onClick={onExit}>
+              Exit
+            </Button>
+          </div>
+          {feedback === 'incorrect' && (
+            <div className='text-sm text-destructive space-y-2'>
+              <div>Try again</div>
+              <div className='text-base font-medium'>Your answer: {input}</div>
+            </div>
+          )}
+        </div>
+      ) : (
         <div className='flex gap-2'>
-          <Button className='flex-1' onClick={onSubmit} disabled={!input.trim()}>
-            Check
+          <Button className='flex-1' onClick={onSkip}>
+            Skip to next
           </Button>
           <Button variant='outline' onClick={onExit}>
             Exit
           </Button>
         </div>
-        {feedback === 'incorrect' && (
-          <div className='text-sm text-destructive space-y-2'>
-            <div>Try again</div>
-            <div className='text-base font-medium'>Your answer: {input}</div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

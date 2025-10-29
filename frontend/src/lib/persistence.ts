@@ -17,6 +17,7 @@ export interface SessionStateV1 {
   reviewInput: string;
   reviewFeedback: ReviewFeedback;
   showKoreanHint: boolean;
+  reviewRevealed?: boolean;
   // Queue-based drill mode
   queueIds?: string[];
   queueIndex?: number;
@@ -54,6 +55,7 @@ export class LocalStorageProvider implements StorageProvider {
         reviewInput: String(parsed.reviewInput ?? ''),
         reviewFeedback: (parsed.reviewFeedback as ReviewFeedback) ?? 'idle',
         showKoreanHint: Boolean(parsed.showKoreanHint),
+        reviewRevealed: Boolean((parsed as any).reviewRevealed),
         queueIds: Array.isArray(parsed.queueIds) ? (parsed.queueIds as string[]) : [],
         queueIndex: Number.isFinite(parsed.queueIndex) ? Number(parsed.queueIndex) : 0,
         updatedAt: Number.isFinite(parsed.updatedAt) ? Number(parsed.updatedAt) : Date.now(),
