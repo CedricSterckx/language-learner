@@ -113,7 +113,9 @@ function RouteComponent() {
                 className='w-full h-20 sm:h-24 flex flex-col items-center justify-center space-y-2 hover:shadow-md transition-shadow cursor-pointer'
               >
                 <div className='text-lg font-medium'>{unit.name}</div>
-                <div className='text-sm text-muted-foreground'>{unit.description ?? 'Practice vocabulary'}</div>
+                <div className='text-sm text-muted-foreground'>
+                  <UnitKeywords unitId={unit.id} />
+                </div>
               </Button>
             </Link>
           ))}
@@ -126,4 +128,39 @@ function RouteComponent() {
       {showHangulModal && <HangulChartModal onClose={() => setShowHangulModal(false)} />}
     </div>
   );
+}
+
+function UnitKeywords({ unitId }: { unitId: string }) {
+  const [text, setText] = useState<string>('Loading…');
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const items = await (await import('@/lib/vocabulary')).loadUnit(unitId);
+        if (cancelled) return;
+        const keywords = computeKeywords(items, 3);
+        setText(keywords.length > 0 ? keywords.join(' • ') : 'Vocabulary');
+      } catch {
+        if (!cancelled) setText('Vocabulary');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [unitId]);
+
+  return <span>{text}</span>;
+}
+
+function computeKeywords(items: { korean: string; english: string }[], max = 3): string[] {
+  const words: string[] = [];
+  for (const v of items) {
+    // pull first 1-2 tokens from english, trimmed
+    const raw = v.english.replace(/[,.;:!?#]/g, ' ').trim();
+    const tokens = raw.split(/\s+/).slice(0, 2).join(' ');
+    if (tokens && !words.includes(tokens)) words.push(tokens);
+    if (words.length >= max) break;
+  }
+  return words;
 }
