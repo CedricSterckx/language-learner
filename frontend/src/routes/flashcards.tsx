@@ -380,9 +380,29 @@ function RouteComponent() {
     setResumeCandidate(null);
   }
 
-  async function handleClearSession() {
+  async function handleResetSession() {
     await storage.deleteSession(unit);
     setResumeCandidate(null);
+    // Clear queue and card session state
+    setSessionQueue([]);
+    setQueueIndex(0);
+    setCurrentId(null);
+    setShowAnswer(false);
+    setShowReverse(false);
+    setTypedAnswer('');
+    setAnswerFeedback(null);
+    setStudyMode('list');
+    // Clear review drill state
+    setReviewOrder([]);
+    setReviewIndex(0);
+    setReviewInput('');
+    setReviewFeedback('idle');
+    setShowKoreanHint(false);
+    setReviewRevealed(false);
+    // Clear easy marks for this unit
+    const cleared = new Set<string>();
+    setEasySet(cleared);
+    saveEasySet(unit, cleared);
   }
 
   function submitReview() {
@@ -517,7 +537,7 @@ function RouteComponent() {
               onStartReview={startReview}
               hasResume={Boolean(resumeCandidate) || easySet.size > 0}
               onResume={resumeCandidate ? handleResume : startCards}
-              onReset={handleClearSession}
+              onReset={handleResetSession}
               easySet={easySet}
             />
           </>
@@ -716,7 +736,7 @@ function VocabularyList(props: {
             </Button>
           )}
           <Button variant='outline' onClick={onReset} className='w-full sm:w-auto'>
-            Start New Session
+            Reset Session
           </Button>
         </div>
       </div>
