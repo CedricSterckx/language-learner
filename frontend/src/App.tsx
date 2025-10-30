@@ -1,5 +1,4 @@
 import { createRouter, RouterProvider } from '@tanstack/react-router';
-import { Analytics } from '@vercel/analytics/next';
 import './App.css';
 import { routeTree } from './routeTree.gen';
 
@@ -15,7 +14,6 @@ function App() {
   return (
     <>
       <RouterProvider router={router} />;
-      <Analytics />
     </>
   );
 }
