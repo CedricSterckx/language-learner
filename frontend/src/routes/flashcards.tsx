@@ -620,12 +620,12 @@ function RouteComponent() {
                   <Button
                     size='lg'
                     onClick={() => handleGrade('good')}
-                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-white'
                   >
                     <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
                     <div className='flex flex-col leading-tight items-center'>
-                      <span className='text-lg md:text-xl font-semibold text-white'>Good</span>
-                      <span className='text-xs text-white/90'>{gradeHints.good}</span>
+                      <span className='text-lg md:text-xl font-semibold dark:text-white'>Good</span>
+                      <span className='text-xs dark:text-white/90'>{gradeHints.good}</span>
                     </div>
                   </Button>
                   <Button
