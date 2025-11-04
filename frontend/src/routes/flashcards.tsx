@@ -51,7 +51,7 @@ function RouteComponent() {
   
   // API hooks
   const { settings, updateSettings } = useSettings();
-  const { easySet, markEasy, progress, updateProgress } = useProgress(unit);
+  const { easySet, markEasy } = useProgress(unit);
   const { session, saveSession, deleteSession } = useSession(unit);
   
   // Local state

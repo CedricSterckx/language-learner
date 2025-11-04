@@ -1,30 +1,46 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api';
-import type { MarkEasyRequest, UpdateProgressRequest } from '@language-learner/shared';
+import { storage } from '../storage';
+import { useAuth } from '@/contexts/AuthContext';
+import type { MarkEasyRequest } from '@language-learner/shared';
 
 export function useProgress(unitId: string) {
   const queryClient = useQueryClient();
+  const { isGuestMode } = useAuth();
 
   const query = useQuery({
     queryKey: ['progress', unitId],
     queryFn: async () => {
-      const data = await apiClient.getProgress(unitId);
-      return data;
+      if (isGuestMode) {
+        // Guest mode: use localStorage
+        const easySet = storage.getEasySet(unitId);
+        return {
+          progress: {},
+          easySet: [...easySet],
+        };
+      }
+      // Authenticated: use API
+      return await apiClient.getProgress(unitId);
     },
     enabled: Boolean(unitId),
   });
 
   const markEasyMutation = useMutation({
-    mutationFn: (data: MarkEasyRequest) => apiClient.markEasy(unitId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['progress', unitId] });
+    mutationFn: async (data: MarkEasyRequest) => {
+      if (isGuestMode) {
+        // Guest mode: save to localStorage
+        if (data.isEasy) {
+          storage.addToEasySet(unitId, data.cardId);
+        } else {
+          storage.removeFromEasySet(unitId, data.cardId);
+        }
+        return;
+      }
+      // Authenticated: save to API
+      await apiClient.markEasy(unitId, data);
     },
-  });
-
-  const updateProgressMutation = useMutation({
-    mutationFn: (data: UpdateProgressRequest) => apiClient.updateProgress(unitId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['progress', unitId] });
+      void queryClient.invalidateQueries({ queryKey: ['progress', unitId] });
     },
   });
 
@@ -33,7 +49,6 @@ export function useProgress(unitId: string) {
     easySet: new Set(query.data?.easySet || []),
     isLoading: query.isLoading,
     markEasy: markEasyMutation.mutate,
-    updateProgress: updateProgressMutation.mutate,
   };
 }
 

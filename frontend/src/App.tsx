@@ -5,6 +5,7 @@ import './App.css';
 import { routeTree } from './routeTree.gen';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { GuestModeWarning } from '@/components/GuestModeWarning';
 import './lib/cleanup-storage'; // Auto-cleanup old localStorage
 
 const router = createRouter({ routeTree });
@@ -28,11 +29,12 @@ declare module '@tanstack/react-router' {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <AuthProvider>
-      <RouterProvider router={router} />
+          <GuestModeWarning />
+          <RouterProvider router={router} />
         </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

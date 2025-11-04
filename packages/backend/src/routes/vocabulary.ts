@@ -1,5 +1,5 @@
 import { getDatabase } from '../db/client';
-import { requireAuth, jsonError, jsonResponse } from '../auth/middleware';
+import { jsonError, jsonResponse } from '../auth/middleware';
 import type {
   VocabularyUnitsResponse,
   VocabularyUnitResponse,
@@ -8,9 +8,7 @@ import type {
 } from '@language-learner/shared';
 
 export async function handleGetUnits(req: Request): Promise<Response> {
-  const authResult = await requireAuth(req);
-  if (authResult instanceof Response) return authResult;
-
+  // Vocabulary is public - no auth required
   const db = getDatabase();
   const units = db
     .query<VocabularyUnit, []>(
@@ -23,9 +21,7 @@ export async function handleGetUnits(req: Request): Promise<Response> {
 }
 
 export async function handleGetUnit(req: Request, unitId: string): Promise<Response> {
-  const authResult = await requireAuth(req);
-  if (authResult instanceof Response) return authResult;
-
+  // Vocabulary is public - no auth required
   const db = getDatabase();
 
   // Get unit

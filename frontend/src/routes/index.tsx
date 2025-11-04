@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { HangulChartModal } from '@/components/HangulChartModal';
 import { GoogleLoginButton } from '@/components/GoogleLoginButton';
 import { MigrationPrompt } from '@/components/MigrationPrompt';
+import { SyncGuestDataPrompt } from '@/components/SyncGuestDataPrompt';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { searchVocabulary, type SearchItem, type UnitMeta } from '@/lib/vocabulary';
 import { useVocabularyUnits } from '@/lib/hooks/useVocabulary';
@@ -14,9 +15,9 @@ export const Route = createFileRoute('/')({
 });
 
 function RouteComponent() {
-  const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { isAuthenticated, isLoading, user, logout, isGuestMode } = useAuth();
   
-  // Show login screen if not authenticated
+  // Show loading screen
   if (isLoading) {
     return (
       <div className="min-h-dvh grid place-items-center">
@@ -25,38 +26,24 @@ function RouteComponent() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-dvh grid place-items-center p-6">
-        <div className="text-center space-y-8 max-w-md w-full">
-          <div className="space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight">Korean Flashcards</h1>
-            <p className="text-muted-foreground">
-              Sign in with your Google account to start learning and sync your progress across devices.
-            </p>
-          </div>
-          <GoogleLoginButton />
-        </div>
-      </div>
-    );
-  }
-
+  // Show app to both guest and authenticated users
   return (
     <>
-      <MigrationPrompt />
-      <AuthenticatedHome user={user!} onLogout={logout} />
+      {isAuthenticated && <MigrationPrompt />}
+      {isAuthenticated && <SyncGuestDataPrompt />}
+      <Home user={user} onLogout={logout} isGuestMode={isGuestMode} />
     </>
   );
 }
 
-function AuthenticatedHome({ user, onLogout }: { user: { name: string; email: string }; onLogout: () => void }) {
+function Home({ user, onLogout, isGuestMode }: { user: { name: string; email: string } | null; onLogout: () => void; isGuestMode: boolean }) {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [showHangulModal, setShowHangulModal] = useState(false);
 
-  // Fetch vocabulary units from API
+  // Fetch vocabulary units from API or local files
   const { data: unitsData, isLoading: unitsLoading } = useVocabularyUnits();
   const vocabularyUnits: UnitMeta[] = useMemo(() => {
     if (!unitsData) return [];
@@ -66,6 +53,8 @@ function AuthenticatedHome({ user, onLogout }: { user: { name: string; email: st
       description: unit.description,
     }));
   }, [unitsData]);
+
+  const hasNoUnits = !unitsLoading && vocabularyUnits.length === 0;
 
   const unitNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -107,25 +96,70 @@ function AuthenticatedHome({ user, onLogout }: { user: { name: string; email: st
     );
   }
 
-  return (
-    <div className='min-h-dvh grid place-items-center p-6'>
-      <div className='text-center space-y-8 max-w-2xl w-full'>
-        <div className='space-y-4'>
+  if (hasNoUnits) {
+    return (
+      <div className='min-h-dvh grid place-items-center p-6'>
+        <div className='text-center space-y-6 max-w-md w-full'>
           <div className='space-y-2'>
             <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
             <p className='text-muted-foreground'>
-              Welcome, {user.name}! Practice your vocabulary with spaced repetition.
+              No vocabulary units found. 
+              {isGuestMode 
+                ? ' Please make sure vocabulary files are available in the assets folder.' 
+                : ' The database needs to be seeded with vocabulary data.'}
             </p>
           </div>
-          <div className='flex justify-center gap-2 flex-wrap'>
+          {!isGuestMode && (
+            <div className='p-4 bg-muted rounded-lg text-sm text-left space-y-2'>
+              <p className='font-semibold'>To seed the database:</p>
+              <code className='block bg-background p-2 rounded'>
+                cd packages/backend<br />
+                bun run seed
+              </code>
+            </div>
+          )}
+          <div className='flex justify-center gap-2'>
             <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
               📚 Korean Alphabet (Hangul)
             </Button>
-            <Button variant='outline' size='sm' onClick={onLogout}>
-              Sign Out
-            </Button>
+            {isGuestMode ? (
+              <GoogleLoginButton />
+            ) : (
+              <Button variant='outline' size='sm' onClick={onLogout}>
+                Sign Out
+              </Button>
+            )}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className='min-h-dvh grid place-items-center p-6'>
+      <div className='text-center space-y-8 max-w-2xl w-full'>
+            <div className='space-y-4'>
+              <div className='space-y-2'>
+                <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
+                <p className='text-muted-foreground'>
+                  {isGuestMode 
+                    ? 'Practice your vocabulary with flashcards' 
+                    : `Welcome, ${user?.name}! Practice your vocabulary with spaced repetition.`}
+                </p>
+              </div>
+              <div className='flex justify-center gap-2 flex-wrap'>
+                <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
+                  📚 Korean Alphabet (Hangul)
+                </Button>
+                {isGuestMode ? (
+                  <GoogleLoginButton />
+                ) : (
+                  <Button variant='outline' size='sm' onClick={onLogout}>
+                    Sign Out
+                  </Button>
+                )}
+              </div>
+            </div>
 
         <div className='text-left space-y-2'>
           <Input

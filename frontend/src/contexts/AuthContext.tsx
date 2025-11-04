@@ -6,6 +6,7 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isGuestMode: boolean;
   loginWithGoogle: (code: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     isAuthenticated: user !== null,
+    isGuestMode: user === null && !isLoading,
     loginWithGoogle,
     logout,
   };
