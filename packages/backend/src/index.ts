@@ -7,18 +7,37 @@ import { handleGetSettings, handleUpdateSettings } from './routes/settings';
 import { handleGetProgress, handleMarkEasy, handleUpdateProgress } from './routes/progress';
 import { handleMigrateLocalStorage } from './routes/migrate';
 import { jsonError } from './auth/middleware';
-import { apiRateLimit } from './utils/rate-limit';
+import { logger, logRequest, type RequestLogData } from './utils/logger';
 
 // Validate config and run migrations on startup
 validateConfig();
 runMigrations();
 
+logger.info('🚀 Starting Language Learner Backend', {
+  port: config.port,
+  nodeEnv: process.env.NODE_ENV,
+  corsOrigin: config.corsOrigin,
+});
+
 const server = Bun.serve({
   port: config.port,
   async fetch(req) {
+    const startTime = Date.now();
     const url = new URL(req.url);
     const path = url.pathname;
     const method = req.method;
+    
+    // Extract request metadata for logging
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+    
+    const logData: RequestLogData = {
+      method,
+      url: req.url,
+      path,
+      userAgent,
+      ip,
+    };
 
     // CORS handling
     if (method === 'OPTIONS') {
@@ -28,16 +47,11 @@ const server = Bun.serve({
       });
     }
 
-    // Rate limiting for API routes (excluding auth for now, it has its own)
-    if (path.startsWith('/api/') && !path.startsWith('/api/auth/')) {
-      const ip = req.headers.get('x-forwarded-for') || 'unknown';
-      if (!apiRateLimit(ip)) {
-        return jsonError('RateLimitExceeded', 'Too many requests', 429);
-      }
-    }
-
     try {
       let response: Response;
+
+      // Skip logging for health checks to reduce noise
+      const shouldLog = path !== '/health';
 
       // Auth routes
       if (path === '/api/auth/google' && method === 'POST') {
@@ -103,12 +117,40 @@ const server = Bun.serve({
         headers.set(key, value);
       }
 
-      return new Response(response.body, {
+      const finalResponse = new Response(response.body, {
         status: response.status,
         headers,
       });
+
+      // Log the request
+      if (shouldLog) {
+        const duration = Date.now() - startTime;
+        logRequest({
+          ...logData,
+          status: finalResponse.status,
+          duration,
+        });
+      }
+
+      return finalResponse;
     } catch (error) {
-      console.error('Server error:', error);
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      logger.error('Server error', {
+        ...logData,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        duration,
+      });
+
+      logRequest({
+        ...logData,
+        status: 500,
+        duration,
+        error: errorMessage,
+      });
+
       return jsonError('InternalServerError', 'An unexpected error occurred', 500);
     }
   },
@@ -123,7 +165,9 @@ function getCorsHeaders(): Record<string, string> {
   };
 }
 
-console.log(`🚀 Server running at http://localhost:${server.port}`);
-console.log(`📁 Database: ${config.databasePath}`);
-console.log(`🔐 CORS origin: ${config.corsOrigin}`);
+logger.info('✅ Server started successfully', {
+  url: `http://localhost:${server.port}`,
+  database: config.databasePath,
+  corsOrigin: config.corsOrigin,
+});
 

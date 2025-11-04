@@ -4,15 +4,14 @@ import { HangulChartModal } from '@/components/HangulChartModal';
 import { GoogleLoginButton } from '@/components/GoogleLoginButton';
 import { MigrationPrompt } from '@/components/MigrationPrompt';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { getUnitsMeta, searchVocabulary, type SearchItem } from '@/lib/vocabulary';
+import { searchVocabulary, type SearchItem, type UnitMeta } from '@/lib/vocabulary';
+import { useVocabularyUnits } from '@/lib/hooks/useVocabulary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
 
 export const Route = createFileRoute('/')({
   component: RouteComponent,
 });
-
-const vocabularyUnits = getUnitsMeta();
 
 function RouteComponent() {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
@@ -57,11 +56,22 @@ function AuthenticatedHome({ user, onLogout }: { user: { name: string; email: st
   const [searching, setSearching] = useState(false);
   const [showHangulModal, setShowHangulModal] = useState(false);
 
+  // Fetch vocabulary units from API
+  const { data: unitsData, isLoading: unitsLoading } = useVocabularyUnits();
+  const vocabularyUnits: UnitMeta[] = useMemo(() => {
+    if (!unitsData) return [];
+    return unitsData.units.map(unit => ({
+      id: unit.id.toString(),
+      name: unit.name,
+      description: unit.description,
+    }));
+  }, [unitsData]);
+
   const unitNameById = useMemo(() => {
     const m = new Map<string, string>();
     for (const u of vocabularyUnits) m.set(u.id, u.name);
     return m;
-  }, []);
+  }, [vocabularyUnits]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(query.trim()), 250);
@@ -88,6 +98,14 @@ function AuthenticatedHome({ user, onLogout }: { user: { name: string; email: st
       cancelled = true;
     };
   }, [debounced]);
+
+  if (unitsLoading) {
+    return (
+      <div className='min-h-dvh grid place-items-center'>
+        <div className='text-lg animate-fade-in'>Loading units...</div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-dvh grid place-items-center p-6'>
@@ -179,7 +197,8 @@ function UnitKeywords({ unitId }: { unitId: string }) {
     let cancelled = false;
     void (async () => {
       try {
-        const items = await (await import('@/lib/vocabulary')).loadUnit(unitId);
+        const { apiClient } = await import('@/lib/api');
+        const { items } = await apiClient.getUnit(unitId);
         if (cancelled) return;
         const keywords = computeKeywords(items, 3);
         setText(keywords.length > 0 ? keywords.join(' • ') : 'Vocabulary');

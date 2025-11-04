@@ -3,17 +3,10 @@ import { signJWT } from '../auth/jwt';
 import { exchangeCodeForToken, getGoogleProfile } from '../auth/google';
 import { requireAuth, jsonError, jsonResponse } from '../auth/middleware';
 import { config } from '../config';
-import { authRateLimit } from '../utils/rate-limit';
 import type { GoogleAuthRequest, AuthResponse, User } from '@language-learner/shared';
 
 export async function handleGoogleAuth(req: Request): Promise<Response> {
   try {
-    // Rate limiting by IP
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    if (!authRateLimit(ip)) {
-      return jsonError('RateLimitExceeded', 'Too many requests, try again later', 429);
-    }
-
     const body: GoogleAuthRequest = await req.json();
     const { code, redirectUri } = body;
 

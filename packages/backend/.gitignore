@@ -6,4 +6,5 @@ data/
 *.db-shm
 *.db-wal
 dist/
+logs/
 

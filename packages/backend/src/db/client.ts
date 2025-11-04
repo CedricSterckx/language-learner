@@ -41,6 +41,13 @@ export function runMigrations() {
   console.log('✅ Database migrations completed');
 }
 
+// Log query for debugging (optional, can be enabled/disabled)
+export function logQuery(query: string, params?: any[]) {
+  if (process.env.LOG_QUERIES === 'true') {
+    console.log('[DB Query]', query, params || []);
+  }
+}
+
 export function closeDatabase() {
   if (db) {
     db.close();

@@ -1,3 +1,12 @@
+/**
+ * @deprecated This file is kept for backwards compatibility and type definitions only.
+ * The app now uses API-based storage via hooks (useSession, useSettings, useProgress).
+ * Types are now defined in @language-learner/shared package.
+ * 
+ * All localStorage data (except theme) is automatically cleaned up on app load.
+ * See: src/lib/cleanup-storage.ts
+ */
+
 export type StudyMode = 'list' | 'cards' | 'review';
 
 export type AnswerFeedback = 'correct' | 'incorrect' | null;
@@ -32,6 +41,9 @@ export interface StorageProvider {
 
 const SESSION_KEY = (unit: string) => `flashcards:session:${unit}`;
 
+/**
+ * @deprecated Use API hooks instead (useSession)
+ */
 export class LocalStorageProvider implements StorageProvider {
   async getSession(unit: string): Promise<SessionStateV1 | null> {
     try {
@@ -84,6 +96,10 @@ export class LocalStorageProvider implements StorageProvider {
 
 let providerSingleton: StorageProvider | null = null;
 
+/**
+ * @deprecated Use API hooks instead (useSession, useSettings, useProgress)
+ * This is kept only for backwards compatibility during migration.
+ */
 export function getStorageProvider(): StorageProvider {
   if (!providerSingleton) providerSingleton = new LocalStorageProvider();
   return providerSingleton;

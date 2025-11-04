@@ -3,9 +3,12 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { HangulChartModal } from '@/components/HangulChartModal';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
-import { loadUnit } from '@/lib/vocabulary';
-import { useEffect, useMemo, useState } from 'react';
+import { apiClient } from '@/lib/api';
+import { useSettings } from '@/lib/hooks/useSettings';
+import { useProgress } from '@/lib/hooks/useProgress';
+import { useSession } from '@/lib/hooks/useSession';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import type { SessionStateV1 } from '@language-learner/shared';
 
 // Native TTS for Korean
 function speakKorean(text: string) {
@@ -30,17 +33,7 @@ type VocabCard = {
 
 type Quality = 'again' | 'hard' | 'good' | 'easy';
 
-type Settings = {
-  promptSide: 'korean' | 'english';
-  typingMode: boolean;
-  largeListText: boolean;
-};
-
-const DEFAULT_SETTINGS: Settings = {
-  promptSide: 'korean',
-  typingMode: false,
-  largeListText: false,
-};
+// Settings now come from API, no need for local type
 
 export const Route = createFileRoute('/flashcards')({
   component: RouteComponent,
@@ -53,10 +46,16 @@ export const Route = createFileRoute('/flashcards')({
 
 function RouteComponent() {
   const { unit } = Route.useSearch();
+  
+  // API hooks
+  const { settings, updateSettings } = useSettings();
+  const { easySet, markEasy } = useProgress(unit);
+  const { session, saveSession, deleteSession } = useSession(unit);
+  
+  // Local state
   const [cards, setCards] = useState<VocabCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [showReverse, setShowReverse] = useState(false);
@@ -75,18 +74,16 @@ function RouteComponent() {
   // queue-based drill state
   const [sessionQueue, setSessionQueue] = useState<string[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
-  // track cards marked Easy to tint list items
-  const [easySet, setEasySet] = useState<Set<string>>(() => loadEasySet(unit));
-
-  const storage = useMemo(() => getStorageProvider(), []);
+  
   const [resumeCandidate, setResumeCandidate] = useState<SessionStateV1 | null>(null);
 
+  // Load vocabulary from API
   useEffect(() => {
     void (async () => {
       try {
         setLoading(true);
-        const raw = await loadUnit(unit);
-        const withIds: VocabCard[] = raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
+        const { items } = await apiClient.getUnit(unit);
+        const withIds: VocabCard[] = items.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
         setCards(withIds);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unknown error');
@@ -98,43 +95,16 @@ function RouteComponent() {
 
   // Load saved session once cards are available
   useEffect(() => {
-    if (loading || cards.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const saved = await storage.getSession(unit);
-      if (cancelled) return;
-      if (!saved) {
-        setResumeCandidate(null);
-        return;
-      }
-      const normalized = normalizeSessionAgainstCards(saved, cards);
-      setResumeCandidate(normalized); // Will be null if no meaningful session to resume
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [unit, loading, cards, storage]);
+    if (loading || cards.length === 0 || !session) return;
+    const normalized = normalizeSessionAgainstCards(session, cards);
+    setResumeCandidate(normalized);
+  }, [unit, loading, cards, session]);
 
+  // Autosave session to API (debounced)
   useEffect(() => {
-    saveSettings(settings);
-  }, [settings]);
-
-  // Reload easySet on unit change
-  useEffect(() => {
-    setEasySet(loadEasySet(unit));
-  }, [unit]);
-
-  // Persist easySet (debounced)
-  useEffect(() => {
-    const timer = window.setTimeout(() => saveEasySet(unit, easySet), 300);
-    return () => window.clearTimeout(timer);
-  }, [unit, easySet]);
-
-  // Autosave session (debounced)
-  useEffect(() => {
-    if (cards.length === 0) return;
+    if (cards.length === 0 || !settings) return;
     const reviewOrderIds = reviewOrder.map((c) => c.id);
-    const session: SessionStateV1 = {
+    const sessionData: SessionStateV1 = {
       schemaVersion: 1,
       unit,
       studyMode,
@@ -154,7 +124,7 @@ function RouteComponent() {
       updatedAt: Date.now(),
     };
     const timer = window.setTimeout(() => {
-      void storage.saveSession(unit, session);
+      saveSession(sessionData);
     }, 500);
     return () => window.clearTimeout(timer);
   }, [
@@ -172,9 +142,10 @@ function RouteComponent() {
     showKoreanHint,
     reviewRevealed,
     cards,
-    storage,
     sessionQueue,
     queueIndex,
+    settings,
+    saveSession,
   ]);
 
   const gradeHints = useMemo(() => {
@@ -222,19 +193,19 @@ function RouteComponent() {
       case 'again':
         q.splice(insertAhead(2), 0, currentId);
         // remove from easy set if user struggled
-        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+        if (easySet.has(currentId)) markEasy({ cardId: currentId, isEasy: false });
         break;
       case 'hard':
         q.splice(insertAhead(5), 0, currentId);
-        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+        if (easySet.has(currentId)) markEasy({ cardId: currentId, isEasy: false });
         break;
       case 'good':
         q.push(currentId);
-        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+        if (easySet.has(currentId)) markEasy({ cardId: currentId, isEasy: false });
         break;
       case 'easy':
-        // drop from queue
-        setEasySet((prev) => new Set(prev).add(currentId));
+        // drop from queue and mark as easy
+        markEasy({ cardId: currentId, isEasy: true });
         break;
     }
 
@@ -278,18 +249,18 @@ function RouteComponent() {
     }
   }
 
-  function toggleTypingMode(checked: boolean) {
-    setSettings((s) => ({ ...s, typingMode: checked }));
+  const toggleTypingMode = useCallback((checked: boolean) => {
+    updateSettings({ typingMode: checked });
     setTypedAnswer('');
     setAnswerFeedback(null);
     if (!showAnswer) {
       setShowAnswer(false);
     }
-  }
+  }, [updateSettings, showAnswer]);
 
-  function toggleLargeListText(checked: boolean) {
-    setSettings((s) => ({ ...s, largeListText: checked }));
-  }
+  const toggleLargeListText = useCallback((checked: boolean) => {
+    updateSettings({ largeListText: checked });
+  }, [updateSettings]);
 
   function handleResetProgress() {
     // Clear queue and UI state
@@ -300,9 +271,12 @@ function RouteComponent() {
     setShowReverse(false);
   }
 
-  function togglePromptSide() {
-    setSettings((s) => ({ ...s, promptSide: s.promptSide === 'korean' ? 'english' : 'korean' }));
-  }
+  const togglePromptSide = useCallback(() => {
+    if (!settings) return;
+    updateSettings({ 
+      promptSide: settings.promptSide === 'korean' ? 'english' : 'korean' 
+    });
+  }, [settings, updateSettings]);
 
   // Simple review drill helpers (English → 한국어)
   function startReview() {
@@ -380,8 +354,8 @@ function RouteComponent() {
     setResumeCandidate(null);
   }
 
-  async function handleResetSession() {
-    await storage.deleteSession(unit);
+  function handleResetSession() {
+    deleteSession();
     setResumeCandidate(null);
     // Clear queue and card session state
     setSessionQueue([]);
@@ -399,10 +373,7 @@ function RouteComponent() {
     setReviewFeedback('idle');
     setShowKoreanHint(false);
     setReviewRevealed(false);
-    // Clear easy marks for this unit
-    const cleared = new Set<string>();
-    setEasySet(cleared);
-    saveEasySet(unit, cleared);
+    // Easy marks are cleared via API automatically
   }
 
   function submitReview() {
@@ -452,7 +423,7 @@ function RouteComponent() {
     setReviewInput('');
   }
 
-  if (loading) {
+  if (loading || !settings) {
     return (
       <div className='min-h-dvh grid place-items-center'>
         <div className='text-lg animate-fade-in'>Loading deck…</div>
@@ -1002,41 +973,6 @@ function Flashcard(props: {
       </style>
     </div>
   );
-}
-
-function loadSettings(): Settings {
-  try {
-    const raw = localStorage.getItem('flashcards:settings');
-    return raw ? { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Settings) } : DEFAULT_SETTINGS;
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
-}
-
-function saveSettings(s: Settings) {
-  try {
-    localStorage.setItem('flashcards:settings', JSON.stringify(s));
-  } catch {
-    // ignore
-  }
-}
-
-function loadEasySet(unit: string): Set<string> {
-  try {
-    const raw = localStorage.getItem(`flashcards:${unit}:easy`);
-    const arr = raw ? (JSON.parse(raw) as string[]) : [];
-    return new Set(arr);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveEasySet(unit: string, set: Set<string>) {
-  try {
-    localStorage.setItem(`flashcards:${unit}:easy`, JSON.stringify(Array.from(set)));
-  } catch {
-    // ignore
-  }
 }
 
 function shuffleArray<T>(arr: T[]): T[] {

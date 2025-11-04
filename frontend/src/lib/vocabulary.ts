@@ -1,94 +1,67 @@
+/**
+ * @deprecated This file loads vocabulary from static JSON files.
+ * The app now loads vocabulary from the database via API.
+ * Use the hooks from @/lib/hooks/useVocabulary instead.
+ * 
+ * This file is kept only for backwards compatibility and will be removed.
+ */
+
+import { apiClient } from './api';
+
 export type VocabItem = { korean: string; english: string };
-
-// Discover all unit JSON files under assets. Vite replaces this at build time.
-const unitModules = import.meta.glob('../assets/vocabulary/A1/*.json');
-
-function getUnitIdFromPath(p: string): string {
-  // Example: ../assets/vocabulary/A1/voc_1.json -> voc_1
-  const match = p.match(/([\\/])([^\\/]+)\.json$/);
-  return match ? match[2] : p;
-}
-
-function numericUnit(a: string): number | null {
-  const m = a.match(/voc_(\d+)/);
-  return m ? Number(m[1]) : null;
-}
-
-export function listUnitIds(): string[] {
-  const ids = Object.keys(unitModules).map(getUnitIdFromPath);
-  // Sort by numeric suffix if present, otherwise lexicographically
-  return ids.sort((x, y) => {
-    const nx = numericUnit(x);
-    const ny = numericUnit(y);
-    if (nx != null && ny != null) return nx - ny;
-    if (nx != null) return -1;
-    if (ny != null) return 1;
-    return x.localeCompare(y);
-  });
-}
 
 export type UnitMeta = { id: string; name: string; description?: string };
 
-export function getUnitsMeta(): UnitMeta[] {
-  return listUnitIds().map((id) => {
-    const n = numericUnit(id);
-    return { id, name: n != null ? `Unit ${n}` : id };
-  });
-}
-
-export async function loadUnit(unitId: string): Promise<VocabItem[]> {
-  // Find the module path whose basename matches unitId
-  const entry = Object.entries(unitModules).find(([path]) => getUnitIdFromPath(path) === unitId);
-  if (!entry) throw new Error(`Unit not found: ${unitId}`);
-  const [, loader] = entry;
-  const mod = (await loader()) as { default: VocabItem[] };
-  const data = Array.isArray((mod as any).default) ? (mod as any).default : mod;
-  return data as VocabItem[];
-}
-
-// --- Search helpers ---
 export type SearchItem = { korean: string; english: string; unitId: string };
 
-let searchIndexPromise: Promise<SearchItem[]> | null = null;
-
-async function buildSearchIndex(): Promise<SearchItem[]> {
-  const entries = Object.entries(unitModules);
-  const results = await Promise.all(
-    entries.map(async ([path, loader]) => {
-      const unitId = getUnitIdFromPath(path);
-      const mod = (await loader()) as { default: VocabItem[] };
-      const data = Array.isArray((mod as any).default) ? (mod as any).default : (mod as any);
-      const items = (data as VocabItem[]).map((v) => ({ ...v, unitId }));
-      return items;
-    })
-  );
-  // Flatten and sort for stable output
-  return results.flat().sort((a, b) => {
-    const na = numericUnit(a.unitId) ?? Number.MAX_SAFE_INTEGER;
-    const nb = numericUnit(b.unitId) ?? Number.MAX_SAFE_INTEGER;
-    return na - nb;
-  });
+/**
+ * @deprecated Use useVocabularyUnits() hook instead
+ */
+export async function getUnitsMeta(): Promise<UnitMeta[]> {
+  const { units } = await apiClient.getUnits();
+  return units.map(unit => ({
+    id: unit.id.toString(),
+    name: unit.name,
+    description: unit.description,
+  }));
 }
 
-async function ensureSearchIndex(): Promise<SearchItem[]> {
-  if (!searchIndexPromise) {
-    searchIndexPromise = buildSearchIndex();
-  }
-  return searchIndexPromise;
+/**
+ * @deprecated Use useVocabularyUnit(unitId) hook instead
+ */
+export async function loadUnit(unitId: string): Promise<VocabItem[]> {
+  const { items } = await apiClient.getUnit(unitId);
+  return items;
 }
 
+/**
+ * Search vocabulary across all units
+ * Note: This performs client-side search. For better performance,
+ * consider adding a backend search endpoint.
+ */
 export async function searchVocabulary(query: string, limit = 50): Promise<SearchItem[]> {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  const idx = await ensureSearchIndex();
+  
+  // Get all units
+  const { units } = await apiClient.getUnits();
   const matches: SearchItem[] = [];
-  for (const item of idx) {
-    const k = item.korean.toLowerCase();
-    const e = item.english.toLowerCase();
-    if (k.includes(q) || e.includes(q)) {
-      matches.push(item);
-      if (matches.length >= limit) break;
+  
+  // Search through each unit
+  for (const unit of units) {
+    if (matches.length >= limit) break;
+    
+    const { items } = await apiClient.getUnit(unit.id.toString());
+    
+    for (const item of items) {
+      const k = item.korean.toLowerCase();
+      const e = item.english.toLowerCase();
+      if (k.includes(q) || e.includes(q)) {
+        matches.push({ ...item, unitId: unit.id.toString() });
+        if (matches.length >= limit) break;
+      }
     }
   }
+  
   return matches;
 }
