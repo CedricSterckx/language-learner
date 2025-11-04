@@ -24,11 +24,6 @@ export interface UserSettings {
 export interface UserProgress {
   userId: number;
   vocabItemId: number;
-  ease: number;
-  intervalMs: number;
-  repetitions: number;
-  dueAtMs: number;
-  lapses: number;
   isEasy: boolean;
   updatedAt: number;
 }

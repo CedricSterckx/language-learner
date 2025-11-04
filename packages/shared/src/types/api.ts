@@ -55,7 +55,7 @@ export interface MarkEasyRequest {
 
 export interface UpdateProgressRequest {
   cardId: string;
-  progress: Partial<UserProgress>;
+  isEasy: boolean;
 }
 
 // Migration endpoint

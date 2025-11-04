@@ -47,15 +47,10 @@ CREATE TABLE IF NOT EXISTS user_settings (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- User progress table (spaced repetition data per vocab item per user)
+-- User progress table (tracks which cards are marked as easy/mastered)
 CREATE TABLE IF NOT EXISTS user_progress (
   user_id INTEGER NOT NULL,
   vocab_item_id INTEGER NOT NULL,
-  ease REAL NOT NULL DEFAULT 2.5,
-  interval_ms INTEGER NOT NULL DEFAULT 0,
-  repetitions INTEGER NOT NULL DEFAULT 0,
-  due_at_ms INTEGER NOT NULL DEFAULT 0,
-  lapses INTEGER NOT NULL DEFAULT 0,
   is_easy INTEGER NOT NULL DEFAULT 0, -- SQLite boolean as 0/1
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, vocab_item_id),
@@ -67,5 +62,4 @@ CREATE TABLE IF NOT EXISTS user_progress (
 CREATE INDEX IF NOT EXISTS idx_vocabulary_items_unit_id ON vocabulary_items(unit_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_progress_due_at ON user_progress(user_id, due_at_ms);
 

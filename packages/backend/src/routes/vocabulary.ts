@@ -39,10 +39,10 @@ export async function handleGetUnit(req: Request, unitId: string): Promise<Respo
     return jsonError('NotFound', 'Unit not found', 404);
   }
 
-  // Get vocabulary items
+  // Get vocabulary items with their database IDs
   const items = db
-    .query<VocabItem, string>(
-      'SELECT korean, english FROM vocabulary_items WHERE unit_id = ? ORDER BY order_index ASC'
+    .query<VocabItem & { id: number; }, string>(
+      'SELECT id, korean, english FROM vocabulary_items WHERE unit_id = ? ORDER BY order_index ASC'
     )
     .all(unitId);
 

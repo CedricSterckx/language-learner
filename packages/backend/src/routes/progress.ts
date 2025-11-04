@@ -18,11 +18,6 @@ export async function handleGetProgress(req: Request, unitId: string): Promise<R
     .query<
       {
         vocab_item_id: number;
-        ease: number;
-        interval_ms: number;
-        repetitions: number;
-        due_at_ms: number;
-        lapses: number;
         is_easy: number;
         updated_at: number;
         korean: string;
@@ -45,11 +40,6 @@ export async function handleGetProgress(req: Request, unitId: string): Promise<R
     progress[row.vocab_item_id.toString()] = {
       userId: authResult.user.userId,
       vocabItemId: row.vocab_item_id,
-      ease: row.ease,
-      intervalMs: row.interval_ms,
-      repetitions: row.repetitions,
-      dueAtMs: row.due_at_ms,
-      lapses: row.lapses,
       isEasy: Boolean(row.is_easy),
       updatedAt: row.updated_at,
     };
@@ -93,14 +83,14 @@ export async function handleMarkEasy(req: Request, unitId: string): Promise<Resp
     return jsonError('NotFound', 'Vocabulary item not found', 404);
   }
 
-  // Insert or update progress
-  db.query(
-    `INSERT INTO user_progress (user_id, vocab_item_id, is_easy, updated_at, ease, interval_ms, repetitions, due_at_ms, lapses)
-     VALUES (?, ?, ?, ?, 2.5, 0, 0, 0, 0)
-     ON CONFLICT(user_id, vocab_item_id) DO UPDATE SET
-       is_easy = excluded.is_easy,
-       updated_at = excluded.updated_at`
-  ).run(authResult.user.userId, item.id, isEasy ? 1 : 0, Date.now());
+      // Insert or update progress
+      db.query(
+        `INSERT INTO user_progress (user_id, vocab_item_id, is_easy, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(user_id, vocab_item_id) DO UPDATE SET
+           is_easy = excluded.is_easy,
+           updated_at = excluded.updated_at`
+      ).run(authResult.user.userId, item.id, isEasy ? 1 : 0, Date.now());
 
   return jsonResponse({ success: true });
 }
@@ -110,10 +100,10 @@ export async function handleUpdateProgress(req: Request, unitId: string): Promis
   if (authResult instanceof Response) return authResult;
 
   const body: UpdateProgressRequest = await req.json();
-  const { cardId, progress } = body;
+  const { cardId, isEasy } = body;
 
-  if (!cardId || !progress) {
-    return jsonError('BadRequest', 'Missing cardId or progress', 400);
+  if (!cardId || isEasy === undefined) {
+    return jsonError('BadRequest', 'Missing cardId or isEasy', 400);
   }
 
   // Parse cardId to get korean and english
@@ -135,46 +125,16 @@ export async function handleUpdateProgress(req: Request, unitId: string): Promis
     return jsonError('NotFound', 'Vocabulary item not found', 404);
   }
 
-  // Build update query
-  const updates: string[] = [];
-  const values: (string | number)[] = [];
+  const updatedAt = Date.now();
 
-  if (progress.ease !== undefined) {
-    updates.push('ease = ?');
-    values.push(progress.ease);
-  }
-  if (progress.intervalMs !== undefined) {
-    updates.push('interval_ms = ?');
-    values.push(progress.intervalMs);
-  }
-  if (progress.repetitions !== undefined) {
-    updates.push('repetitions = ?');
-    values.push(progress.repetitions);
-  }
-  if (progress.dueAtMs !== undefined) {
-    updates.push('due_at_ms = ?');
-    values.push(progress.dueAtMs);
-  }
-  if (progress.lapses !== undefined) {
-    updates.push('lapses = ?');
-    values.push(progress.lapses);
-  }
-  if (progress.isEasy !== undefined) {
-    updates.push('is_easy = ?');
-    values.push(progress.isEasy ? 1 : 0);
-  }
-
-  updates.push('updated_at = ?');
-  values.push(Date.now());
-
-  values.push(authResult.user.userId, item.id);
-
-  // Upsert progress
+  // Upsert progress (insert if not exists, update if exists)
   db.query(
-    `INSERT INTO user_progress (user_id, vocab_item_id, ease, interval_ms, repetitions, due_at_ms, lapses, is_easy, updated_at)
-     VALUES (?, ?, 2.5, 0, 0, 0, 0, 0, ?)
-     ON CONFLICT(user_id, vocab_item_id) DO UPDATE SET ${updates.join(', ')}`
-  ).run(authResult.user.userId, item.id, Date.now(), ...values.slice(0, -2));
+    `INSERT INTO user_progress (user_id, vocab_item_id, is_easy, updated_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id, vocab_item_id) DO UPDATE SET
+       is_easy = excluded.is_easy,
+       updated_at = excluded.updated_at`
+  ).run(authResult.user.userId, item.id, isEasy ? 1 : 0, updatedAt);
 
   return jsonResponse({ success: true });
 }

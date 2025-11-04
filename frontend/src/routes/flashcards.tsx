@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api';
 import { useSettings } from '@/lib/hooks/useSettings';
 import { useProgress } from '@/lib/hooks/useProgress';
 import { useSession } from '@/lib/hooks/useSession';
+export type Quality = 'again' | 'hard' | 'good' | 'easy';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { SessionStateV1 } from '@language-learner/shared';
 
@@ -28,10 +29,11 @@ function speakKorean(text: string) {
 type VocabCard = {
   korean: string;
   english: string;
-  id: string;
+  id: string; // Format: korean|english
+  vocabItemId?: number; // Database ID for progress tracking
 };
 
-type Quality = 'again' | 'hard' | 'good' | 'easy';
+// Quality type now imported from srs.ts
 
 // Settings now come from API, no need for local type
 
@@ -49,7 +51,7 @@ function RouteComponent() {
   
   // API hooks
   const { settings, updateSettings } = useSettings();
-  const { easySet, markEasy } = useProgress(unit);
+  const { easySet, markEasy, progress, updateProgress } = useProgress(unit);
   const { session, saveSession, deleteSession } = useSession(unit);
   
   // Local state
@@ -83,7 +85,11 @@ function RouteComponent() {
       try {
         setLoading(true);
         const { items } = await apiClient.getUnit(unit);
-        const withIds: VocabCard[] = items.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
+        const withIds: VocabCard[] = items.map((r: any) => ({ 
+          ...r, 
+          id: `${r.korean}|${r.english}`,
+          vocabItemId: r.id // Store database ID for progress tracking
+        }));
         setCards(withIds);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unknown error');
@@ -171,7 +177,9 @@ function RouteComponent() {
 
   function startCards() {
     setStudyMode('cards');
-    const shuffled = shuffleArray(cards.map((c) => c.id));
+    // Filter out cards marked as easy (permanently mastered) - all others go in the queue
+    const cardsToStudy = cards.filter((c) => !easySet.has(c.id));
+    const shuffled = shuffleArray(cardsToStudy.map((c) => c.id));
     setSessionQueue(shuffled);
     setQueueIndex(0);
     setCurrentId(shuffled[0] ?? null);
@@ -183,32 +191,39 @@ function RouteComponent() {
 
   function handleGradeQueue(quality: Quality) {
     if (!currentId) return;
+    
+    // Update queue based on quality
     const q = sessionQueue.slice();
     const idx = Math.min(queueIndex, Math.max(0, q.length - 1));
     let removeAt = idx < q.length && q[idx] === currentId ? idx : q.indexOf(currentId);
     if (removeAt >= 0) q.splice(removeAt, 1);
 
     const insertAhead = (n: number) => Math.min((removeAt >= 0 ? removeAt : idx) + n, q.length);
+    
     switch (quality) {
       case 'again':
+        // Re-add card 2 positions ahead
         q.splice(insertAhead(2), 0, currentId);
-        // remove from easy set if user struggled
+        // Remove from easy set if user struggled
         if (easySet.has(currentId)) markEasy({ cardId: currentId, isEasy: false });
         break;
       case 'hard':
+        // Re-add card 5 positions ahead
         q.splice(insertAhead(5), 0, currentId);
         if (easySet.has(currentId)) markEasy({ cardId: currentId, isEasy: false });
         break;
       case 'good':
+        // Re-add to end of queue
         q.push(currentId);
         if (easySet.has(currentId)) markEasy({ cardId: currentId, isEasy: false });
         break;
       case 'easy':
-        // drop from queue and mark as easy
+        // Mark as easy and remove from queue permanently
         markEasy({ cardId: currentId, isEasy: true });
         break;
     }
 
+    // If queue is empty, return to list view
     if (q.length === 0) {
       setSessionQueue([]);
       setQueueIndex(0);
@@ -221,6 +236,7 @@ function RouteComponent() {
       return;
     }
 
+    // Move to next card
     const nextIdx = Math.min(removeAt, q.length - 1);
     setSessionQueue(q);
     setQueueIndex(Math.max(0, nextIdx));
@@ -423,6 +439,7 @@ function RouteComponent() {
     setReviewInput('');
   }
 
+
   if (loading || !settings) {
     return (
       <div className='min-h-dvh grid place-items-center'>
@@ -453,8 +470,14 @@ function RouteComponent() {
             </Link>
             <div className='text-sm text-muted-foreground'>
               {studyMode === 'list' && `Vocabulary List (${totalCount} words)`}
-              {studyMode === 'cards' &&
-                `Queue: ${Math.min(queueIndex + 1, Math.max(1, sessionQueue.length))} / ${sessionQueue.length}`}
+              {studyMode === 'cards' && (
+                <span>
+                  Queue: {Math.min(queueIndex + 1, Math.max(1, sessionQueue.length))} / {sessionQueue.length}
+                  {sessionQueue.length < totalCount && (
+                    <span className='text-xs ml-2'>({totalCount - sessionQueue.length} mastered)</span>
+                  )}
+                </span>
+              )}
               {studyMode === 'review' &&
                 `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
             </div>
