@@ -1,5 +1,6 @@
 import { getDatabase } from '../db/client';
 import { requireAuth, jsonError, jsonResponse } from '../auth/middleware';
+import { logger } from '../utils/logger';
 import type {
   MigrateLocalStorageRequest,
   MigrateLocalStorageResponse,
@@ -111,8 +112,19 @@ export async function handleMigrateLocalStorage(req: Request): Promise<Response>
 
     return jsonResponse(response);
   } catch (error) {
-    console.error('Migration error:', error);
-    return jsonError('MigrationFailed', 'Failed to migrate data', 500);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('❌ Migration error:', error);
+    if (errorStack) console.error('Stack:', errorStack);
+    
+    logger.error('Migration failed', {
+      error: errorMessage,
+      stack: errorStack,
+      userId: authResult.user.userId,
+    });
+    
+    return jsonError('InternalServerError', `Migration failed: ${errorMessage}`, 500);
   }
 }
 

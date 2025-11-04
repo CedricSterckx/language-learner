@@ -136,14 +136,23 @@ const server = Bun.serve({
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       
-      logger.error('Server error', {
+      // Log to console with full details
+      console.error('❌ UNHANDLED ERROR:', error);
+      if (errorStack) {
+        console.error('Stack trace:', errorStack);
+      }
+      
+      // Log to file and console via logger
+      logger.error('Unhandled server error', {
         ...logData,
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
+        stack: errorStack,
         duration,
       });
 
+      // Log the failed request
       logRequest({
         ...logData,
         status: 500,

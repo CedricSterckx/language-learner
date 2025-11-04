@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { logger } from '../utils/logger';
 import type { GoogleProfile } from '@language-learner/shared';
 
 interface GoogleTokenResponse {
@@ -26,6 +27,17 @@ export async function exchangeCodeForToken(code: string, redirectUri: string): P
 
   if (!response.ok) {
     const error = await response.text();
+    
+    console.error('❌ Failed to exchange Google code for token');
+    console.error('Status:', response.status, response.statusText);
+    console.error('Error:', error);
+    
+    logger.error('Failed to exchange Google code for token', { 
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    
     throw new Error(`Failed to exchange code: ${error}`);
   }
 
@@ -40,6 +52,17 @@ export async function getGoogleProfile(accessToken: string): Promise<GoogleProfi
 
   if (!response.ok) {
     const error = await response.text();
+    
+    console.error('❌ Failed to fetch Google profile');
+    console.error('Status:', response.status, response.statusText);
+    console.error('Error:', error);
+    
+    logger.error('Failed to fetch Google profile', { 
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    
     throw new Error(`Failed to get user profile: ${error}`);
   }
 

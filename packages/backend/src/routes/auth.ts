@@ -3,6 +3,7 @@ import { signJWT } from '../auth/jwt';
 import { exchangeCodeForToken, getGoogleProfile } from '../auth/google';
 import { requireAuth, jsonError, jsonResponse } from '../auth/middleware';
 import { config } from '../config';
+import { logger } from '../utils/logger';
 import type { GoogleAuthRequest, AuthResponse, User } from '@language-learner/shared';
 
 export async function handleGoogleAuth(req: Request): Promise<Response> {
@@ -78,8 +79,18 @@ export async function handleGoogleAuth(req: Request): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error('Auth error:', error);
-    return jsonError('AuthenticationFailed', 'Failed to authenticate with Google', 500);
+    const errorMessage = error instanceof Error ? error.message : 'unknown';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('❌ Auth error:', error);
+    if (errorStack) console.error('Stack:', errorStack);
+    
+    logger.error('Google authentication failed', { 
+      error: errorMessage,
+      stack: errorStack,
+    });
+    
+    return jsonError('InternalServerError', 'Failed to authenticate with Google', 500);
   }
 }
 
