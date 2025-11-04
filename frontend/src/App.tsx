@@ -5,7 +5,6 @@ import './App.css';
 import { routeTree } from './routeTree.gen';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { GuestModeWarning } from '@/components/GuestModeWarning';
 import './lib/cleanup-storage'; // Auto-cleanup old localStorage
 
 const router = createRouter({ routeTree });
@@ -31,7 +30,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <AuthProvider>
-          <GuestModeWarning />
           <RouterProvider router={router} />
         </AuthProvider>
       </ThemeProvider>

@@ -147,16 +147,23 @@ function Home({ user, onLogout, isGuestMode }: { user: { name: string; email: st
                     : `Welcome, ${user?.name}! Practice your vocabulary with spaced repetition.`}
                 </p>
               </div>
-              <div className='flex justify-center gap-2 flex-wrap'>
-                <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
-                  📚 Korean Alphabet (Hangul)
-                </Button>
-                {isGuestMode ? (
-                  <GoogleLoginButton />
-                ) : (
-                  <Button variant='outline' size='sm' onClick={onLogout}>
-                    Sign Out
+              <div className='flex flex-col items-center gap-2'>
+                <div className='flex justify-center gap-2 flex-wrap'>
+                  <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
+                    📚 Korean Alphabet (Hangul)
                   </Button>
+                  {isGuestMode ? (
+                    <GoogleLoginButton />
+                  ) : (
+                    <Button variant='outline' size='sm' onClick={onLogout}>
+                      Sign Out
+                    </Button>
+                  )}
+                </div>
+                {isGuestMode && (
+                  <p className='text-xs text-red-600 font-medium'>
+                    Sign in to sync your data with your account and use it on multiple devices
+                  </p>
                 )}
               </div>
             </div>
