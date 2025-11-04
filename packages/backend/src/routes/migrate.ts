@@ -91,8 +91,8 @@ export async function handleMigrateLocalStorage(req: Request): Promise<Response>
           if (!item) continue;
 
           db.query(
-            `INSERT INTO user_progress (user_id, vocab_item_id, is_easy, updated_at, ease, interval_ms, repetitions, due_at_ms, lapses)
-             VALUES (?, ?, 1, ?, 2.5, 0, 0, 0, 0)
+            `INSERT INTO user_progress (user_id, vocab_item_id, is_easy, updated_at)
+             VALUES (?, ?, 1, ?)
              ON CONFLICT(user_id, vocab_item_id) DO UPDATE SET
                is_easy = 1,
                updated_at = excluded.updated_at`
