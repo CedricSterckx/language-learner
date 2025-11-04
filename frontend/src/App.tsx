@@ -5,7 +5,6 @@ import './App.css';
 import { routeTree } from './routeTree.gen';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
-import './lib/cleanup-storage'; // Auto-cleanup old localStorage
 
 const router = createRouter({ routeTree });
 
