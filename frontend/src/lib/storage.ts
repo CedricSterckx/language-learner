@@ -91,7 +91,28 @@ export const storage = {
         keys.push(key);
       }
     }
-    keys.forEach(key => localStorage.removeItem(key));
+    
+    console.log(`🗑️ Clearing ${keys.length} localStorage keys:`, keys);
+    
+    keys.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`  ✓ Removed: ${key}`);
+    });
+    
+    // Verify cleanup
+    const remainingKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(STORAGE_PREFIX)) {
+        remainingKeys.push(key);
+      }
+    }
+    
+    if (remainingKeys.length > 0) {
+      console.warn(`⚠️ Some keys were not removed:`, remainingKeys);
+    } else {
+      console.log('✅ All flashcard data cleared from localStorage');
+    }
   },
 };
 

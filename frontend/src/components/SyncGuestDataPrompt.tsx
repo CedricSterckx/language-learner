@@ -31,7 +31,20 @@ export function SyncGuestDataPrompt() {
             onClick={() => {
               // Clear guest data without syncing
               if (confirm('Are you sure? Your guest progress will be lost.')) {
-                localStorage.removeItem('guest-warning-dismissed');
+                // Clear all guest data
+                const keysToRemove: string[] = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key?.startsWith('flashcards:')) {
+                    keysToRemove.push(key);
+                  }
+                }
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                // Mark as handled so dialog doesn't reappear
+                localStorage.setItem('guest-data-synced', 'true');
+                
+                console.log('🗑️ Guest data cleared without syncing');
                 window.location.reload();
               }
             }} 

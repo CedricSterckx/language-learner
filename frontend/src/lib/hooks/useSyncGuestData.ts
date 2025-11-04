@@ -17,6 +17,14 @@ export function useSyncGuestData() {
   // Check if there's guest data to sync
   useEffect(() => {
     if (isAuthenticated && !hasSynced) {
+      // Check if already synced previously
+      const alreadySynced = localStorage.getItem('guest-data-synced') === 'true';
+      if (alreadySynced) {
+        setHasSynced(true);
+        setNeedsSync(false);
+        return;
+      }
+      
       const guestData = storage.getAllData();
       const hasData = Object.keys(guestData).length > 0;
       setNeedsSync(hasData);
@@ -67,19 +75,43 @@ export function useSyncGuestData() {
         easySets,
       });
 
+      console.log('📤 Data synced to backend, now clearing localStorage...');
+      
       // Clear guest data after successful sync
       storage.clearAll();
+      
+      // Double-check: remove any remaining flashcard keys
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('flashcards:')) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      if (keysToRemove.length > 0) {
+        console.log(`🔄 Removing ${keysToRemove.length} additional keys...`);
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+      
+      console.log('✅ Guest data synced and cleared from localStorage');
       
       return { success: true, message: 'Guest data synced successfully' };
     },
     onSuccess: () => {
       setHasSynced(true);
       setNeedsSync(false);
+      
+      // Mark as synced in localStorage to prevent future prompts
+      localStorage.setItem('guest-data-synced', 'true');
+      
       // Invalidate all queries to refetch from backend
       void queryClient.invalidateQueries();
+      
+      console.log('✅ Sync completed, localStorage cleared');
     },
     onError: (error) => {
-      console.error('Failed to sync guest data:', error);
+      console.error('❌ Failed to sync guest data:', error);
     },
   });
 
