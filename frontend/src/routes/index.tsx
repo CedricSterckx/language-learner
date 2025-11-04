@@ -1,8 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { HangulChartModal } from '@/components/HangulChartModal';
+import { GoogleLoginButton } from '@/components/GoogleLoginButton';
+import { MigrationPrompt } from '@/components/MigrationPrompt';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { getUnitsMeta, searchVocabulary, type SearchItem } from '@/lib/vocabulary';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
 
 export const Route = createFileRoute('/')({
@@ -12,6 +15,42 @@ export const Route = createFileRoute('/')({
 const vocabularyUnits = getUnitsMeta();
 
 function RouteComponent() {
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
+  
+  // Show login screen if not authenticated
+  if (isLoading) {
+    return (
+      <div className="min-h-dvh grid place-items-center">
+        <div className="text-lg animate-fade-in">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-dvh grid place-items-center p-6">
+        <div className="text-center space-y-8 max-w-md w-full">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-semibold tracking-tight">Korean Flashcards</h1>
+            <p className="text-muted-foreground">
+              Sign in with your Google account to start learning and sync your progress across devices.
+            </p>
+          </div>
+          <GoogleLoginButton />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <MigrationPrompt />
+      <AuthenticatedHome user={user!} onLogout={logout} />
+    </>
+  );
+}
+
+function AuthenticatedHome({ user, onLogout }: { user: { name: string; email: string }; onLogout: () => void }) {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
@@ -57,12 +96,15 @@ function RouteComponent() {
           <div className='space-y-2'>
             <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
             <p className='text-muted-foreground'>
-              Practice your vocabulary with spaced repetition. Select a unit to begin.
+              Welcome, {user.name}! Practice your vocabulary with spaced repetition.
             </p>
           </div>
-          <div className='flex justify-center'>
+          <div className='flex justify-center gap-2 flex-wrap'>
             <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
               📚 Korean Alphabet (Hangul)
+            </Button>
+            <Button variant='outline' size='sm' onClick={onLogout}>
+              Sign Out
             </Button>
           </div>
         </div>

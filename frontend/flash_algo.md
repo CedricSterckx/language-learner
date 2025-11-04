@@ -1,5 +1,48 @@
 ## Flashcard Scheduling Logic and Features
 
+**Last updated: 2025-11-04 - Migrated from localStorage to backend API with multi-user support**
+
+### Backend Migration (November 2025)
+
+The application now uses a backend API server for data persistence instead of localStorage:
+
+**Architecture:**
+- **Backend:** Bun + TypeScript with SQLite database
+- **Frontend:** React with TanStack Query for data fetching
+- **Auth:** Google OAuth 2.0 with httpOnly cookies
+- **Storage:** All session state, settings, and progress stored in database per user
+
+**Key Changes:**
+- Multi-user support with Google authentication
+- Data synced across devices automatically
+- Session state persisted to database (debounced writes)
+- Settings stored per user in database
+- Progress/easy marks stored per user per vocabulary item
+- Auto-migration from localStorage on first login
+- httpOnly cookies for secure authentication
+- Rate limiting on all API endpoints
+
+**API Endpoints:**
+- `/api/auth/*` - Authentication (Google OAuth, logout)
+- `/api/vocabulary/*` - Vocabulary units and items
+- `/api/session/:unitId` - Session state (get/save/delete)
+- `/api/settings` - User settings (prompt side, typing mode, etc.)
+- `/api/progress/:unitId` - Progress tracking (easy marks, SRS data)
+- `/api/migrate/from-localstorage` - One-time migration endpoint
+
+**Database Tables:**
+- `users` - User accounts (google_id, email, name, avatar_url)
+- `vocabulary_units` - Vocabulary units (name, level, order_index)
+- `vocabulary_items` - Words/phrases (unit_id, korean, english)
+- `user_sessions` - Session state JSON per unit per user
+- `user_settings` - User preferences (prompt_side, typing_mode, large_list_text)
+- `user_progress` - SRS data per vocab item per user (ease, interval, repetitions, due_at, lapses, is_easy)
+
+**Shared Types:**
+All types shared between frontend and backend via `@language-learner/shared` workspace package.
+
+---
+
 **Last updated: 2025-10-27 - Added Review Drill (English → 한국어) on list page**
 
 ### Review Drill (English → 한국어)
