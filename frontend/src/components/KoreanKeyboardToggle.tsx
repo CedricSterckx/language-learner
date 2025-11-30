@@ -2,7 +2,12 @@ import { Button } from '@/components/ui/button';
 import { useKoreanKeyboard } from './KoreanKeyboardProvider';
 
 export function KoreanKeyboardToggle() {
-  const { isOpen, toggle } = useKoreanKeyboard();
+  const { isOpen, toggle, isConnected } = useKoreanKeyboard();
+
+  // Only show button when keyboard is connected to an input
+  if (!isConnected) {
+    return null;
+  }
 
   return (
     <Button

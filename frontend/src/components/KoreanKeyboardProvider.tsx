@@ -3,6 +3,7 @@ import { KoreanKeyboard } from './KoreanKeyboard';
 
 type KeyboardContextType = {
   isOpen: boolean;
+  isConnected: boolean;
   open: () => void;
   close: () => void;
   toggle: () => void;
@@ -45,6 +46,7 @@ export function KoreanKeyboardProvider({ children }: { children: ReactNode }) {
   // Sync external value changes
   const value: KeyboardContextType = {
     isOpen,
+    isConnected: inputOnChange !== null,
     open,
     close,
     toggle,
