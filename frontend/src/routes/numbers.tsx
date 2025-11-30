@@ -154,45 +154,45 @@ function ConfigPanel(props: {
   const { numberSystem, difficulty, onSystemChange, onDifficultyChange, onStart, difficultyLabel } = props;
 
   return (
-    <div className='space-y-8'>
+    <div className='space-y-6 sm:space-y-8'>
       <div className='text-center space-y-2'>
-        <h1 className='text-3xl font-semibold tracking-tight'>Korean Numbers Practice</h1>
-        <p className='text-muted-foreground'>Practice Sino-Korean and Native Korean numbers</p>
+        <h1 className='text-2xl sm:text-3xl font-semibold tracking-tight'>Korean Numbers</h1>
+        <p className='text-sm sm:text-base text-muted-foreground'>Practice Sino & Native Korean numbers</p>
       </div>
 
-      <div className='space-y-6'>
-        <div className='space-y-3'>
+      <div className='space-y-5 sm:space-y-6'>
+        <div className='space-y-2 sm:space-y-3'>
           <label className='text-sm font-medium'>Number System</label>
-          <div className='grid grid-cols-3 gap-2'>
+          <div className='grid grid-cols-3 gap-1.5 sm:gap-2'>
             {(['sino', 'native', 'both'] as NumberSystem[]).map((sys) => (
               <Button
                 key={sys}
                 variant={numberSystem === sys ? 'default' : 'outline'}
                 onClick={() => onSystemChange(sys)}
-                className='h-12'
+                className='h-10 sm:h-12 text-xs sm:text-sm px-1 sm:px-3'
               >
-                {sys === 'sino' && '한자어 (Sino)'}
-                {sys === 'native' && '고유어 (Native)'}
+                {sys === 'sino' && <><span className='hidden sm:inline'>한자어 </span>Sino</>}
+                {sys === 'native' && <><span className='hidden sm:inline'>고유어 </span>Native</>}
                 {sys === 'both' && 'Both'}
               </Button>
             ))}
           </div>
           <p className='text-xs text-muted-foreground'>
-            {numberSystem === 'sino' && 'Sino-Korean: Used for dates, money, phone numbers (0-999,999)'}
-            {numberSystem === 'native' && 'Native Korean: Used for counting, hours, age (1-99 only)'}
-            {numberSystem === 'both' && 'Practice both systems randomly'}
+            {numberSystem === 'sino' && 'Dates, money, phone (0-999,999)'}
+            {numberSystem === 'native' && 'Counting, hours, age (1-99)'}
+            {numberSystem === 'both' && 'Practice both systems'}
           </p>
         </div>
 
-        <div className='space-y-3'>
+        <div className='space-y-2 sm:space-y-3'>
           <label className='text-sm font-medium'>Difficulty</label>
-          <div className='grid grid-cols-3 gap-2'>
+          <div className='grid grid-cols-3 gap-1.5 sm:gap-2'>
             {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
               <Button
                 key={d}
                 variant={difficulty === d ? 'default' : 'outline'}
                 onClick={() => onDifficultyChange(d)}
-                className='h-12'
+                className='h-10 sm:h-12 text-xs sm:text-sm px-1 sm:px-3'
               >
                 {difficultyLabel(d)}
               </Button>
@@ -200,12 +200,12 @@ function ConfigPanel(props: {
           </div>
           {numberSystem === 'native' && difficulty !== 'easy' && (
             <p className='text-xs text-amber-600 dark:text-amber-400'>
-              Note: Native Korean only goes up to 99
+              Native Korean only goes up to 99
             </p>
           )}
         </div>
 
-        <Button onClick={onStart} size='lg' className='w-full h-14 text-lg'>
+        <Button onClick={onStart} size='lg' className='w-full h-12 sm:h-14 text-base sm:text-lg'>
           Start Exercise
         </Button>
       </div>
@@ -233,68 +233,68 @@ function ExercisePanel(props: {
         : 'border-border bg-card';
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4 sm:space-y-6'>
       <div className='flex items-center justify-between'>
-        <div className='space-y-1'>
-          <div className='text-sm text-muted-foreground'>Write the number in Korean</div>
-          <div className='text-xs text-muted-foreground'>
-            System: {exercise.currentSystem === 'sino' ? '한자어 (Sino-Korean)' : '고유어 (Native Korean)'}
+        <div className='space-y-0.5'>
+          <div className='text-xs sm:text-sm text-muted-foreground'>Write in Korean</div>
+          <div className='text-[10px] sm:text-xs text-muted-foreground'>
+            {exercise.currentSystem === 'sino' ? 'Sino (한자어)' : 'Native (고유어)'}
           </div>
         </div>
-        <div className='flex items-center gap-4 text-sm'>
-          <span className='text-green-600 dark:text-green-400 font-medium'>✓ {correctCount}</span>
-          <span className='text-red-600 dark:text-red-400 font-medium'>✗ {wrongCount}</span>
+        <div className='flex items-center gap-3 text-sm'>
+          <span className='text-green-600 dark:text-green-400 font-medium'>✓{correctCount}</span>
+          <span className='text-red-600 dark:text-red-400 font-medium'>✗{wrongCount}</span>
         </div>
       </div>
 
-      <div className={`rounded-xl border-2 p-8 text-center transition-colors ${feedbackClasses}`}>
-        <div className='text-6xl sm:text-7xl font-bold tracking-tight text-primary'>
+      <div className={`rounded-xl border-2 p-5 sm:p-8 text-center transition-colors ${feedbackClasses}`}>
+        <div className='text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-primary'>
           {exercise.currentNumber.toLocaleString()}
         </div>
-        <div className='mt-3 text-sm text-muted-foreground'>
-          {exercise.currentSystem === 'sino' ? 'Sino-Korean (한자어)' : 'Native Korean (고유어)'}
+        <div className='mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground'>
+          {exercise.currentSystem === 'sino' ? 'Sino (한자어)' : 'Native (고유어)'}
         </div>
       </div>
 
       {feedback === 'incorrect' && (
-        <div className='p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 space-y-2'>
-          <div className='text-sm text-red-700 dark:text-red-300'>Incorrect!</div>
-          <div className='text-base'>
-            <span className='text-muted-foreground'>Correct answer: </span>
+        <div className='p-3 sm:p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 space-y-1.5 sm:space-y-2'>
+          <div className='text-xs sm:text-sm text-red-700 dark:text-red-300'>Incorrect!</div>
+          <div className='text-sm sm:text-base'>
+            <span className='text-muted-foreground'>Answer: </span>
             <span className='font-medium text-foreground'>{exercise.currentAnswer}</span>
           </div>
-          <div className='text-sm text-muted-foreground'>
-            Your answer: {userInput}
+          <div className='text-xs sm:text-sm text-muted-foreground'>
+            You: {userInput}
           </div>
         </div>
       )}
 
       {feedback === 'correct' && (
-        <div className='p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'>
-          <div className='text-center text-green-700 dark:text-green-300 font-medium'>
+        <div className='p-3 sm:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'>
+          <div className='text-center text-green-700 dark:text-green-300 font-medium text-sm sm:text-base'>
             ✓ Correct!
           </div>
         </div>
       )}
 
       {feedback === 'idle' && (
-        <div className='space-y-3'>
+        <div className='space-y-2 sm:space-y-3'>
           <Input
             value={userInput}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && userInput.trim()) onSubmit();
             }}
-            placeholder='Type the Korean number...'
+            placeholder='Type Korean number...'
             autoFocus
-            className='text-lg h-12'
+            className='text-base sm:text-lg h-11 sm:h-12'
           />
           <div className='flex gap-2'>
             <Button className='flex-1' onClick={onSubmit} disabled={!userInput.trim()}>
               Check
             </Button>
-            <Button variant='outline' onClick={onEnd}>
-              End Exercise
+            <Button variant='outline' onClick={onEnd} className='text-sm'>
+              End
             </Button>
           </div>
         </div>

@@ -490,41 +490,47 @@ function RouteComponent() {
     <div className='min-h-[calc(100dvh-3rem)] flex flex-col'>
       {/* Flashcard-specific controls bar */}
       <div className='border-b bg-muted/30'>
-        <div className='mx-auto max-w-2xl px-4 py-2 flex flex-wrap items-center justify-between gap-2'>
-          <div className='text-sm text-muted-foreground'>
-            {studyMode === 'list' && `Vocabulary List (${totalCount} words)`}
-            {studyMode === 'cards' &&
-              `${sessionQueue.length} ${sessionQueue.length === 1 ? 'card' : 'cards'} remaining`}
-            {studyMode === 'review' &&
-              `${reviewOrder.length - reviewIndex} ${reviewOrder.length - reviewIndex === 1 ? 'card' : 'cards'} remaining`}
+        <div className='mx-auto max-w-2xl px-3 sm:px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+          <div className='text-xs sm:text-sm text-muted-foreground'>
+            {studyMode === 'list' && `${totalCount} words`}
+            {studyMode === 'cards' && `${sessionQueue.length} ${sessionQueue.length === 1 ? 'card' : 'cards'} left`}
+            {studyMode === 'review' && `${reviewOrder.length - reviewIndex} left`}
           </div>
-          <div className='flex items-center gap-2 flex-wrap'>
+          <div className='flex items-center gap-1.5 sm:gap-2 flex-wrap'>
             {studyMode === 'cards' && (
               <>
-                <Button variant='outline' size='sm' onClick={togglePromptSide}>
-                  {settings.promptSide === 'korean' ? '한국어 → EN' : 'EN → 한국어'}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={togglePromptSide}
+                  className='text-xs sm:text-sm px-2 sm:px-3'
+                >
+                  {settings.promptSide === 'korean' ? '한→EN' : 'EN→한'}
                 </Button>
-                <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-1.5'>
                   <Switch checked={settings.typingMode} onCheckedChange={toggleTypingMode} />
-                  <span className='text-sm text-muted-foreground'>Typing</span>
+                  <span className='text-xs sm:text-sm text-muted-foreground'>Type</span>
                 </div>
               </>
             )}
             {studyMode === 'review' && (
               <>
-                <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-1.5'>
                   <Switch checked={showKoreanHint} onCheckedChange={setShowKoreanHint} />
-                  <span className='text-sm text-muted-foreground'>
-                    {showKoreanHint ? '한국어 → EN' : 'EN → 한국어'}
-                  </span>
+                  <span className='text-xs sm:text-sm text-muted-foreground'>{showKoreanHint ? '한→EN' : 'EN→한'}</span>
                 </div>
-                <Button variant='outline' size='sm' onClick={exitReview}>
+                <Button variant='outline' size='sm' onClick={exitReview} className='text-xs sm:text-sm px-2 sm:px-3'>
                   Exit
                 </Button>
               </>
             )}
             {studyMode !== 'list' && (
-              <Button variant='outline' size='sm' onClick={handleResetProgress}>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleResetProgress}
+                className='text-xs sm:text-sm px-2 sm:px-3'
+              >
                 Reset
               </Button>
             )}
@@ -600,52 +606,52 @@ function RouteComponent() {
                     </div>
                   </div>
                 )}
-                <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4'>
                   <Button
                     size='lg'
                     variant='destructive'
                     onClick={() => handleGrade('again')}
-                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-14 sm:h-12 md:h-14 rounded-lg'
                   >
                     <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
                     <div className='flex flex-col leading-tight items-center'>
-                      <span className='text-lg md:text-xl font-semibold text-white'>Again</span>
-                      <span className='text-xs text-white/90'>{gradeHints.again}</span>
+                      <span className='text-base sm:text-lg md:text-xl font-semibold text-white'>Again</span>
+                      <span className='text-[10px] sm:text-xs text-white/90'>{gradeHints.again}</span>
                     </div>
                   </Button>
                   <Button
                     size='lg'
                     variant='outline'
                     onClick={() => handleGrade('hard')}
-                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-14 sm:h-12 md:h-14 rounded-lg'
                   >
                     <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
                     <div className='flex flex-col leading-tight items-center'>
-                      <span className='text-lg md:text-xl font-semibold'>Hard</span>
-                      <span className='text-xs text-muted-foreground'>{gradeHints.hard}</span>
+                      <span className='text-base sm:text-lg md:text-xl font-semibold'>Hard</span>
+                      <span className='text-[10px] sm:text-xs text-muted-foreground'>{gradeHints.hard}</span>
                     </div>
                   </Button>
                   <Button
                     size='lg'
                     onClick={() => handleGrade('good')}
-                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-white'
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-14 sm:h-12 md:h-14 rounded-lg dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-white'
                   >
                     <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
                     <div className='flex flex-col leading-tight items-center'>
-                      <span className='text-lg md:text-xl font-semibold dark:text-white'>Good</span>
-                      <span className='text-xs dark:text-white/90'>{gradeHints.good}</span>
+                      <span className='text-base sm:text-lg md:text-xl font-semibold dark:text-white'>Good</span>
+                      <span className='text-[10px] sm:text-xs dark:text-white/90'>{gradeHints.good}</span>
                     </div>
                   </Button>
                   <Button
                     size='lg'
                     variant='secondary'
                     onClick={() => handleGrade('easy')}
-                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-12 md:h-14 rounded-lg'
+                    className='relative overflow-hidden group transition-all hover:-translate-y-0.5 hover:shadow-lg h-14 sm:h-12 md:h-14 rounded-lg'
                   >
                     <span className='pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
                     <div className='flex flex-col leading-tight items-center'>
-                      <span className='text-lg md:text-xl font-semibold'>Easy</span>
-                      <span className='text-xs text-muted-foreground'>{gradeHints.easy}</span>
+                      <span className='text-base sm:text-lg md:text-xl font-semibold'>Easy</span>
+                      <span className='text-[10px] sm:text-xs text-muted-foreground'>{gradeHints.easy}</span>
                     </div>
                   </Button>
                 </div>
@@ -715,35 +721,41 @@ function VocabularyList(props: {
   }));
 
   return (
-    <div className='space-y-6'>
-      <div className='flex flex-wrap items-center justify-between gap-3'>
-        <div>
-          <h2 className='text-2xl font-semibold'>Vocabulary</h2>
-          <p className='text-muted-foreground'>Browse the words or start a session</p>
-        </div>
-        <div className='flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap'>
-          <div className='flex items-center gap-3 pr-1'>
-            <CircularProgress value={percent} label={`${easyCount}/${total}`} size={56} strokeWidth={8} />
+    <div className='space-y-4 sm:space-y-6'>
+      <div className='space-y-3'>
+        <div className='flex items-center justify-between gap-2'>
+          <div>
+            <h2 className='text-xl sm:text-2xl font-semibold'>Vocabulary</h2>
+            <p className='text-sm text-muted-foreground hidden sm:block'>Browse the words or start a session</p>
           </div>
           <div className='flex items-center gap-2'>
+            <CircularProgress value={percent} label={`${easyCount}/${total}`} size={48} strokeWidth={6} />
+            <div className='hidden sm:flex items-center gap-2'>
+              <Switch checked={largeText} onCheckedChange={onToggleLargeText} />
+              <span className='text-sm text-muted-foreground'>Big</span>
+            </div>
+          </div>
+        </div>
+        <div className='grid grid-cols-2 sm:flex sm:flex-wrap gap-2'>
+          <Button variant='outline' onClick={onStartReview} size='sm' className='text-xs sm:text-sm'>
+            Practice
+          </Button>
+          {hasResume ? (
+            <Button onClick={onResume} size='sm' className='text-xs sm:text-sm'>
+              Resume
+            </Button>
+          ) : (
+            <Button onClick={onStartCards} size='sm' className='text-xs sm:text-sm'>
+              Start
+            </Button>
+          )}
+          <Button variant='outline' onClick={onReset} size='sm' className='text-xs sm:text-sm col-span-2 sm:col-span-1'>
+            Reset
+          </Button>
+          <div className='flex sm:hidden items-center gap-2 col-span-2 justify-center'>
             <Switch checked={largeText} onCheckedChange={onToggleLargeText} />
             <span className='text-sm text-muted-foreground'>Big text</span>
           </div>
-          <Button variant='outline' onClick={onStartReview} className='w-full sm:w-auto'>
-            Practice Vocabulary
-          </Button>
-          {hasResume ? (
-            <Button onClick={onResume} className='w-full sm:w-auto'>
-              Resume Flashcards
-            </Button>
-          ) : (
-            <Button onClick={onStartCards} className='w-full sm:w-auto'>
-              Start Flashcards
-            </Button>
-          )}
-          <Button variant='outline' onClick={onReset} className='w-full sm:w-auto'>
-            Reset Session
-          </Button>
         </div>
       </div>
 
@@ -1002,33 +1014,29 @@ function Flashcard(props: {
       >
         🔊
       </button>
-      <div className={`flip-card cursor-pointer h-[14rem] sm:h-[16rem] md:h-[20rem]`} onClick={handleClick}>
+      <div className={`flip-card cursor-pointer h-[12rem] sm:h-[16rem] md:h-[20rem]`} onClick={handleClick}>
         <div
           className={`absolute inset-0 rounded-xl border bg-card text-card-foreground shadow-sm p-6 md:p-8 flip-face grid place-items-center`}
         >
-          <div className='text-center space-y-3'>
-            <div className='text-3xl md:text-4xl font-semibold tracking-tight'>{prompt}</div>
-            {!revealed && <div className='text-sm text-muted-foreground'>Tap card to reveal answer</div>}
-            {revealed && showReverse && (
-              <div className='text-sm text-muted-foreground'>Tap card to flip • Showing prompt</div>
-            )}
+          <div className='text-center space-y-2 sm:space-y-3'>
+            <div className='text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight'>{prompt}</div>
+            {!revealed && <div className='text-xs sm:text-sm text-muted-foreground'>Tap to reveal</div>}
+            {revealed && showReverse && <div className='text-xs sm:text-sm text-muted-foreground'>Tap to flip</div>}
           </div>
         </div>
 
         <div
           className={`absolute inset-0 rounded-xl border bg-card text-card-foreground shadow-sm p-6 md:p-8 flip-face flip-back grid place-items-center`}
         >
-          <div className='text-center space-y-3'>
-            <div className='text-3xl md:text-4xl font-semibold tracking-tight'>{answer}</div>
+          <div className='text-center space-y-2 sm:space-y-3'>
+            <div className='text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight'>{answer}</div>
             {exampleKorean && exampleEnglish && (
-              <div className='mt-2 p-3 rounded-lg bg-muted/50 border border-border/50'>
-                <div className='text-base md:text-lg text-foreground/90'>{exampleKorean}</div>
-                <div className='text-sm text-muted-foreground mt-1'>{exampleEnglish}</div>
+              <div className='mt-1 sm:mt-2 p-2 sm:p-3 rounded-lg bg-muted/50 border border-border/50'>
+                <div className='text-sm sm:text-base md:text-lg text-foreground/90'>{exampleKorean}</div>
+                <div className='text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1'>{exampleEnglish}</div>
               </div>
             )}
-            {revealed && !showReverse && (
-              <div className='text-sm text-muted-foreground'>Tap card to flip • Showing answer</div>
-            )}
+            {revealed && !showReverse && <div className='text-xs sm:text-sm text-muted-foreground'>Tap to flip</div>}
           </div>
         </div>
       </div>

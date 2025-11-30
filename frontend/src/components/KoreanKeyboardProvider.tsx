@@ -38,10 +38,13 @@ export function KoreanKeyboardProvider({ children }: { children: ReactNode }) {
     setInputOnChange(null);
   }, []);
 
-  const handleChange = useCallback((v: string) => {
-    setInputValue(v);
-    inputOnChange?.(v);
-  }, [inputOnChange]);
+  const handleChange = useCallback(
+    (v: string) => {
+      setInputValue(v);
+      inputOnChange?.(v);
+    },
+    [inputOnChange]
+  );
 
   // Sync external value changes
   const value: KeyboardContextType = {
@@ -59,14 +62,7 @@ export function KoreanKeyboardProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Spacer to allow scrolling when keyboard is open */}
       {isOpen && <div className='h-60' />}
-      {isOpen && inputOnChange && (
-        <KoreanKeyboard
-          value={inputValue}
-          onChange={handleChange}
-          onClose={close}
-        />
-      )}
+      {isOpen && inputOnChange && <KoreanKeyboard value={inputValue} onChange={handleChange} onClose={close} />}
     </KeyboardContext.Provider>
   );
 }
-

@@ -54,10 +54,8 @@ export function AnalogClock({ hour, minute, size = 200 }: AnalogClockProps) {
 
   return (
     <svg
-      width={size}
-      height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className="block"
+      className="block w-full h-full"
       aria-label={`Clock showing ${hour}:${minute.toString().padStart(2, '0')}`}
     >
       {/* Clock face */}

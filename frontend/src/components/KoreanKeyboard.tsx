@@ -286,37 +286,37 @@ export function KoreanKeyboard(props: {
   const doubles = ['ㅃ', 'ㅉ', 'ㄸ', 'ㄲ', 'ㅆ'];
 
   return (
-    <div className='fixed bottom-0 left-0 right-0 z-50 border-t bg-background shadow-lg'>
-      <div className='mx-auto max-w-2xl p-3 space-y-2'>
-        <div className='flex items-center justify-between mb-2'>
-          <span className='text-sm text-muted-foreground'>Korean Keyboard</span>
-          <Button variant='ghost' size='sm' onClick={onClose}>✕ Close</Button>
+    <div className='fixed bottom-0 left-0 right-0 z-50 border-t bg-background shadow-lg safe-area-inset-bottom'>
+      <div className='mx-auto max-w-2xl px-1.5 sm:px-3 py-2 sm:py-3 space-y-1.5 sm:space-y-2'>
+        <div className='flex items-center justify-between px-1'>
+          <span className='text-xs sm:text-sm text-muted-foreground'>한글</span>
+          <Button variant='ghost' size='sm' onClick={onClose} className='h-7 px-2 text-xs sm:text-sm'>✕</Button>
         </div>
 
-        <div className='space-y-1'>
+        <div className='space-y-0.5 sm:space-y-1'>
           {rows.map((row, i) => (
-            <div key={i} className='flex gap-1 justify-center'>
+            <div key={i} className='flex gap-0.5 sm:gap-1 justify-center'>
               {row.consonants.map((k) => (
                 <KeyBtn key={k} char={k} onClick={() => processKey(k)} />
               ))}
-              <div className='w-1' />
+              <div className='w-0.5 sm:w-1' />
               {row.vowels.map((k) => (
                 <KeyBtn key={k} char={k} onClick={() => processKey(k)} type='vowel' />
               ))}
             </div>
           ))}
-          <div className='flex gap-1 justify-center'>
+          <div className='flex gap-0.5 sm:gap-1 justify-center'>
             {doubles.map((k) => (
               <KeyBtn key={k} char={k} onClick={() => processKey(k)} type='double' />
             ))}
           </div>
         </div>
 
-        <div className='flex gap-2 justify-center'>
-          <Button variant='outline' className='h-10 px-6' onClick={handleBackspace}>
-            ← Backspace
+        <div className='flex gap-1.5 sm:gap-2 justify-center px-1'>
+          <Button variant='outline' className='h-9 sm:h-10 px-3 sm:px-6 text-xs sm:text-sm' onClick={handleBackspace}>
+            ← <span className='hidden sm:inline'>Back</span>
           </Button>
-          <Button variant='outline' className='h-10 flex-1 max-w-xs' onClick={handleSpace}>
+          <Button variant='outline' className='h-9 sm:h-10 flex-1 max-w-xs text-xs sm:text-sm' onClick={handleSpace}>
             Space
           </Button>
         </div>
@@ -328,15 +328,15 @@ export function KoreanKeyboard(props: {
 function KeyBtn(props: { char: string; onClick: () => void; type?: 'consonant' | 'vowel' | 'double' }) {
   const { char, onClick, type = 'consonant' } = props;
   const styles = {
-    consonant: 'bg-card hover:bg-accent',
-    vowel: 'bg-primary/10 hover:bg-primary/20 text-primary',
-    double: 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300',
+    consonant: 'bg-card hover:bg-accent active:bg-accent',
+    vowel: 'bg-primary/10 hover:bg-primary/20 active:bg-primary/20 text-primary',
+    double: 'bg-orange-100 hover:bg-orange-200 active:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 dark:active:bg-orange-900/50 text-orange-700 dark:text-orange-300',
   };
   return (
     <button
       type='button'
       onClick={onClick}
-      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg border text-lg font-medium transition-colors ${styles[type]}`}
+      className={`w-8 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-md sm:rounded-lg border text-base sm:text-lg font-medium transition-colors ${styles[type]}`}
     >
       {char}
     </button>

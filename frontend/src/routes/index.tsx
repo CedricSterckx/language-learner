@@ -49,24 +49,23 @@ function RouteComponent() {
   }, [debounced]);
 
   return (
-    <div className='min-h-[calc(100dvh-3rem)] grid place-items-center p-6'>
-      <div className='text-center space-y-8 max-w-2xl w-full'>
-        <div className='space-y-2'>
-          <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
-          <p className='text-muted-foreground'>
-            Practice your vocabulary with spaced repetition. Select a unit to begin.
-          </p>
+    <div className='min-h-[calc(100dvh-3rem)] grid place-items-center p-4 sm:p-6'>
+      <div className='text-center space-y-5 sm:space-y-8 max-w-2xl w-full'>
+        <div className='space-y-1.5 sm:space-y-2'>
+          <h1 className='text-2xl sm:text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
+          <p className='text-sm sm:text-base text-muted-foreground'>Practice vocabulary with spaced repetition</p>
         </div>
 
         <div className='text-left space-y-2'>
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder='Search vocabulary (한국어 or English)…'
+            placeholder='Search (한국어 or English)…'
             aria-label='Search vocabulary'
+            className='h-10 sm:h-11'
           />
           {query && (
-            <div className='rounded-lg border bg-card text-card-foreground shadow-sm max-h-80 overflow-auto'>
+            <div className='rounded-lg border bg-card text-card-foreground shadow-sm max-h-60 sm:max-h-80 overflow-auto'>
               {searching && <div className='px-3 py-2 text-sm text-muted-foreground'>Searching…</div>}
               {!searching && results.length === 0 && (
                 <div className='px-3 py-2 text-sm text-muted-foreground'>No results</div>
@@ -74,17 +73,17 @@ function RouteComponent() {
               {!searching && results.length > 0 && (
                 <ul className='divide-y'>
                   {results.map((item, idx) => (
-                    <li key={`${item.unitId}:${item.korean}:${idx}`} className='hover:bg-accent/50'>
+                    <li key={`${item.unitId}:${item.korean}:${idx}`} className='hover:bg-accent/50 active:bg-accent/50'>
                       <Link
                         to='/flashcards'
                         search={{ unit: item.unitId }}
-                        className='flex items-center justify-between gap-3 px-3 py-2'
+                        className='flex items-center justify-between gap-2 px-3 py-2'
                       >
-                        <div className='text-left'>
-                          <div className='text-base font-medium'>{item.korean}</div>
-                          <div className='text-sm text-muted-foreground'>{item.english}</div>
+                        <div className='text-left min-w-0'>
+                          <div className='text-sm sm:text-base font-medium truncate'>{item.korean}</div>
+                          <div className='text-xs sm:text-sm text-muted-foreground truncate'>{item.english}</div>
                         </div>
-                        <div className='shrink-0 text-xs px-2 py-1 rounded border'>
+                        <div className='shrink-0 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border'>
                           {unitNameById.get(item.unitId) ?? item.unitId}
                         </div>
                       </Link>
@@ -96,15 +95,15 @@ function RouteComponent() {
           )}
         </div>
 
-        <div className='grid gap-4 md:grid-cols-2'>
+        <div className='grid gap-2 sm:gap-4 grid-cols-2'>
           {vocabularyUnits.map((unit) => (
             <Link key={unit.id} to='/flashcards' search={{ unit: unit.id }}>
               <Button
                 variant='outline'
-                className='w-full h-auto min-h-[100px] flex flex-col items-center justify-center space-y-3 p-5 hover:shadow-md transition-shadow cursor-pointer relative'
+                className='w-full h-auto min-h-[80px] sm:min-h-[100px] flex flex-col items-center justify-center space-y-1.5 sm:space-y-3 p-3 sm:p-5 hover:shadow-md active:shadow-md transition-shadow cursor-pointer relative'
               >
-                <div className='text-lg font-medium'>{unit.name}</div>
-                <div className='text-sm text-muted-foreground'>
+                <div className='text-sm sm:text-lg font-medium'>{unit.name}</div>
+                <div className='text-xs sm:text-sm text-muted-foreground line-clamp-2'>
                   <UnitKeywords unitId={unit.id} />
                 </div>
                 <UnitWordCount unitId={unit.id} />
@@ -113,9 +112,7 @@ function RouteComponent() {
           ))}
         </div>
 
-        <div className='text-sm text-muted-foreground'>
-          Each unit contains vocabulary cards with Korean-English pairs
-        </div>
+        <div className='text-xs sm:text-sm text-muted-foreground'>Korean-English vocabulary cards</div>
       </div>
     </div>
   );
@@ -155,7 +152,7 @@ function UnitWordCount({ unitId }: { unitId: string }) {
         const items = await (await import('@/lib/vocabulary')).loadUnit(unitId);
         if (cancelled) return;
         setWordCount(items.length);
-        
+
         // Load progress (easy set)
         try {
           const raw = localStorage.getItem(`flashcards:${unitId}:easy`);
@@ -178,9 +175,9 @@ function UnitWordCount({ unitId }: { unitId: string }) {
   if (wordCount === null) return null;
 
   return (
-    <span className='absolute bottom-3 right-3 text-xs text-muted-foreground'>
+    <span className='absolute bottom-1.5 right-1.5 sm:bottom-3 sm:right-3 text-[10px] sm:text-xs text-muted-foreground'>
       {doneCount > 0 && <span className='text-primary font-medium'>{doneCount}/</span>}
-      {wordCount} words
+      {wordCount}
     </span>
   );
 }

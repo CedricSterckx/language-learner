@@ -16,7 +16,7 @@ export function ThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50 size-8 sm:size-9 md:size-10"
+        className="fixed top-14 right-2 sm:top-3 sm:right-3 md:right-4 z-50 size-8 sm:size-9"
         aria-label="Toggle theme"
       >
         <Sun className="size-4 sm:size-5" />
@@ -29,7 +29,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50 size-8 sm:size-9 md:size-10"
+      className="fixed top-14 right-2 sm:top-3 sm:right-3 md:right-4 z-50 size-8 sm:size-9"
       aria-label="Toggle theme"
     >
       {theme === "dark" ? (

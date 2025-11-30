@@ -156,42 +156,42 @@ function ConfigPanel(props: {
   const { difficulty, is24h, onDifficultyChange, onFormatChange, onStart } = props;
 
   return (
-    <div className='space-y-8'>
+    <div className='space-y-6 sm:space-y-8'>
       <div className='text-center space-y-2'>
-        <h1 className='text-3xl font-semibold tracking-tight'>Korean Time Practice</h1>
-        <p className='text-muted-foreground'>Learn to tell time in Korean</p>
+        <h1 className='text-2xl sm:text-3xl font-semibold tracking-tight'>Korean Time</h1>
+        <p className='text-sm sm:text-base text-muted-foreground'>Learn to tell time in Korean</p>
       </div>
 
-      <div className='space-y-6'>
-        <div className='space-y-3'>
+      <div className='space-y-5 sm:space-y-6'>
+        <div className='space-y-2 sm:space-y-3'>
           <label className='text-sm font-medium'>Time Format</label>
-          <div className='grid grid-cols-2 gap-2'>
+          <div className='grid grid-cols-2 gap-1.5 sm:gap-2'>
             <Button
               variant={!is24h ? 'default' : 'outline'}
               onClick={() => onFormatChange(false)}
-              className='h-12'
+              className='h-10 sm:h-12 text-xs sm:text-sm'
             >
-              12-hour (1-12)
+              12h (1-12)
             </Button>
             <Button
               variant={is24h ? 'default' : 'outline'}
               onClick={() => onFormatChange(true)}
-              className='h-12'
+              className='h-10 sm:h-12 text-xs sm:text-sm'
             >
-              24-hour (0-23)
+              24h (0-23)
             </Button>
           </div>
         </div>
 
-        <div className='space-y-3'>
+        <div className='space-y-2 sm:space-y-3'>
           <label className='text-sm font-medium'>Difficulty</label>
-          <div className='grid grid-cols-2 gap-2'>
+          <div className='grid grid-cols-2 gap-1.5 sm:gap-2'>
             {(['easy', 'medium', 'hard', 'expert'] as TimeDifficulty[]).map((d) => (
               <Button
                 key={d}
                 variant={difficulty === d ? 'default' : 'outline'}
                 onClick={() => onDifficultyChange(d)}
-                className='h-12'
+                className='h-10 sm:h-12 text-xs sm:text-sm'
               >
                 {getTimeDifficultyLabel(d)}
               </Button>
@@ -199,7 +199,7 @@ function ConfigPanel(props: {
           </div>
         </div>
 
-        <Button onClick={onStart} size='lg' className='w-full h-14 text-lg'>
+        <Button onClick={onStart} size='lg' className='w-full h-12 sm:h-14 text-base sm:text-lg'>
           Start Exercise
         </Button>
       </div>
@@ -227,47 +227,49 @@ function ExercisePanel(props: {
         : 'border-border bg-card';
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4 sm:space-y-6'>
       <div className='flex items-center justify-between'>
-        <div className='space-y-1'>
-          <div className='text-sm text-muted-foreground'>What time is it?</div>
-          <div className='text-xs text-muted-foreground'>
-            Write the time in Korean
+        <div className='space-y-0.5'>
+          <div className='text-xs sm:text-sm text-muted-foreground'>What time is it?</div>
+          <div className='text-[10px] sm:text-xs text-muted-foreground'>
+            Write in Korean
           </div>
         </div>
-        <div className='flex items-center gap-4 text-sm'>
-          <span className='text-green-600 dark:text-green-400 font-medium'>✓ {correctCount}</span>
-          <span className='text-red-600 dark:text-red-400 font-medium'>✗ {wrongCount}</span>
+        <div className='flex items-center gap-3 text-sm'>
+          <span className='text-green-600 dark:text-green-400 font-medium'>✓{correctCount}</span>
+          <span className='text-red-600 dark:text-red-400 font-medium'>✗{wrongCount}</span>
         </div>
       </div>
 
-      <div className={`rounded-xl border-2 p-6 sm:p-8 flex justify-center transition-colors ${feedbackClasses}`}>
-        <AnalogClock hour={exercise.hour} minute={exercise.minute} size={220} />
+      <div className={`rounded-xl border-2 p-4 sm:p-6 md:p-8 flex justify-center transition-colors ${feedbackClasses}`}>
+        <div className='w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56'>
+          <AnalogClock hour={exercise.hour} minute={exercise.minute} size={220} />
+        </div>
       </div>
 
       {feedback === 'incorrect' && (
-        <div className='p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 space-y-2'>
-          <div className='text-sm text-red-700 dark:text-red-300'>Incorrect!</div>
-          <div className='text-base'>
-            <span className='text-muted-foreground'>Correct answer: </span>
+        <div className='p-3 sm:p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 space-y-1.5 sm:space-y-2'>
+          <div className='text-xs sm:text-sm text-red-700 dark:text-red-300'>Incorrect!</div>
+          <div className='text-sm sm:text-base'>
+            <span className='text-muted-foreground'>Answer: </span>
             <span className='font-medium text-foreground'>{exercise.answer}</span>
           </div>
-          <div className='text-sm text-muted-foreground'>
-            Your answer: {userInput}
+          <div className='text-xs sm:text-sm text-muted-foreground'>
+            You: {userInput}
           </div>
         </div>
       )}
 
       {feedback === 'correct' && (
-        <div className='p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'>
-          <div className='text-center text-green-700 dark:text-green-300 font-medium'>
+        <div className='p-3 sm:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'>
+          <div className='text-center text-green-700 dark:text-green-300 font-medium text-sm sm:text-base'>
             ✓ Correct!
           </div>
         </div>
       )}
 
       {feedback === 'idle' && (
-        <div className='space-y-3'>
+        <div className='space-y-2 sm:space-y-3'>
           <Input
             value={userInput}
             onChange={(e) => onInputChange(e.target.value)}
@@ -276,14 +278,14 @@ function ExercisePanel(props: {
             }}
             placeholder='예: 세 시 삼십 분'
             autoFocus
-            className='text-lg h-12'
+            className='text-base sm:text-lg h-11 sm:h-12'
           />
           <div className='flex gap-2'>
             <Button className='flex-1' onClick={onSubmit} disabled={!userInput.trim()}>
               Check
             </Button>
-            <Button variant='outline' onClick={onEnd}>
-              End Exercise
+            <Button variant='outline' onClick={onEnd} className='text-sm'>
+              End
             </Button>
           </div>
         </div>
