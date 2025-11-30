@@ -494,9 +494,9 @@ function RouteComponent() {
           <div className='text-sm text-muted-foreground'>
             {studyMode === 'list' && `Vocabulary List (${totalCount} words)`}
             {studyMode === 'cards' &&
-              `Queue: ${Math.min(queueIndex + 1, Math.max(1, sessionQueue.length))} / ${sessionQueue.length}`}
+              `${sessionQueue.length} ${sessionQueue.length === 1 ? 'card' : 'cards'} remaining`}
             {studyMode === 'review' &&
-              `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
+              `${reviewOrder.length - reviewIndex} ${reviewOrder.length - reviewIndex === 1 ? 'card' : 'cards'} remaining`}
           </div>
           <div className='flex items-center gap-2 flex-wrap'>
             {studyMode === 'cards' && (
@@ -771,7 +771,9 @@ function VocabularyList(props: {
                       >
                         <span>🔊</span>
                       </Button>
-                      <div className={`${largeText ? 'text-2xl md:text-3xl' : 'text-xl'} font-medium`}>{card.korean}</div>
+                      <div className={`${largeText ? 'text-2xl md:text-3xl' : 'text-xl'} font-medium`}>
+                        {card.korean}
+                      </div>
                     </div>
                     <div className='text-muted-foreground'>→</div>
                     <div className={`${largeText ? 'text-xl md:text-2xl' : 'text-lg'}`}>{card.english}</div>
@@ -780,8 +782,12 @@ function VocabularyList(props: {
               </div>
               {card.exampleKorean && card.exampleEnglish && (
                 <div className='ml-10 p-2 rounded bg-muted/30 border-l-2 border-primary/30'>
-                  <div className={`${largeText ? 'text-base' : 'text-sm'} text-foreground/80`}>{card.exampleKorean}</div>
-                  <div className={`${largeText ? 'text-sm' : 'text-xs'} text-muted-foreground mt-0.5`}>{card.exampleEnglish}</div>
+                  <div className={`${largeText ? 'text-base' : 'text-sm'} text-foreground/80`}>
+                    {card.exampleKorean}
+                  </div>
+                  <div className={`${largeText ? 'text-sm' : 'text-xs'} text-muted-foreground mt-0.5`}>
+                    {card.exampleEnglish}
+                  </div>
                 </div>
               )}
             </div>
@@ -960,7 +966,17 @@ function Flashcard(props: {
   onToggleReverse: () => void;
   onSpeakKorean: () => void;
 }) {
-  const { prompt, answer, exampleKorean, exampleEnglish, revealed, showReverse, onReveal, onToggleReverse, onSpeakKorean } = props;
+  const {
+    prompt,
+    answer,
+    exampleKorean,
+    exampleEnglish,
+    revealed,
+    showReverse,
+    onReveal,
+    onToggleReverse,
+    onSpeakKorean,
+  } = props;
 
   const isFlipped = revealed && !showReverse; // front: prompt, back: answer
 
