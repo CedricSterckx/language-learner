@@ -146,6 +146,7 @@ function UnitKeywords({ unitId }: { unitId: string }) {
 
 function UnitWordCount({ unitId }: { unitId: string }) {
   const [wordCount, setWordCount] = useState<number | null>(null);
+  const [doneCount, setDoneCount] = useState<number>(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,6 +155,17 @@ function UnitWordCount({ unitId }: { unitId: string }) {
         const items = await (await import('@/lib/vocabulary')).loadUnit(unitId);
         if (cancelled) return;
         setWordCount(items.length);
+        
+        // Load progress (easy set)
+        try {
+          const raw = localStorage.getItem(`flashcards:${unitId}:easy`);
+          const easyIds = raw ? (JSON.parse(raw) as string[]) : [];
+          const itemIds = new Set(items.map((item) => `${item.korean}|${item.english}`));
+          const done = easyIds.filter((id) => itemIds.has(id)).length;
+          setDoneCount(done);
+        } catch {
+          setDoneCount(0);
+        }
       } catch {
         if (!cancelled) setWordCount(null);
       }
@@ -167,6 +179,7 @@ function UnitWordCount({ unitId }: { unitId: string }) {
 
   return (
     <span className='absolute bottom-3 right-3 text-xs text-muted-foreground'>
+      {doneCount > 0 && <span className='text-primary font-medium'>{doneCount}/</span>}
       {wordCount} words
     </span>
   );
