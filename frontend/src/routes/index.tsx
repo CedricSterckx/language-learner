@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { HangulChartModal } from '@/components/HangulChartModal';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { getUnitsMeta, searchVocabulary, type SearchItem } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
@@ -16,7 +15,6 @@ function RouteComponent() {
   const [debounced, setDebounced] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [searching, setSearching] = useState(false);
-  const [showHangulModal, setShowHangulModal] = useState(false);
 
   const unitNameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -51,25 +49,13 @@ function RouteComponent() {
   }, [debounced]);
 
   return (
-    <div className='min-h-dvh grid place-items-center p-6'>
+    <div className='min-h-[calc(100dvh-3rem)] grid place-items-center p-6'>
       <div className='text-center space-y-8 max-w-2xl w-full'>
-        <div className='space-y-4'>
-          <div className='space-y-2'>
-            <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
-            <p className='text-muted-foreground'>
-              Practice your vocabulary with spaced repetition. Select a unit to begin.
-            </p>
-          </div>
-          <div className='flex justify-center gap-2 flex-wrap'>
-            <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
-              📚 Korean Alphabet (Hangul)
-            </Button>
-            <Link to='/numbers'>
-              <Button variant='outline' size='sm'>
-                🔢 Korean Numbers
-              </Button>
-            </Link>
-          </div>
+        <div className='space-y-2'>
+          <h1 className='text-4xl font-semibold tracking-tight'>Korean Flashcards</h1>
+          <p className='text-muted-foreground'>
+            Practice your vocabulary with spaced repetition. Select a unit to begin.
+          </p>
         </div>
 
         <div className='text-left space-y-2'>
@@ -130,7 +116,6 @@ function RouteComponent() {
           Each unit contains vocabulary cards with Korean-English pairs
         </div>
       </div>
-      {showHangulModal && <HangulChartModal onClose={() => setShowHangulModal(false)} />}
     </div>
   );
 }
@@ -161,7 +146,6 @@ function UnitKeywords({ unitId }: { unitId: string }) {
 function computeKeywords(items: { korean: string; english: string }[], max = 3): string[] {
   const words: string[] = [];
   for (const v of items) {
-    // pull first 1-2 tokens from english, trimmed
     const raw = v.english.replace(/[,.;:!?#]/g, ' ').trim();
     const tokens = raw.split(/\s+/).slice(0, 2).join(' ');
     if (tokens && !words.includes(tokens)) words.push(tokens);

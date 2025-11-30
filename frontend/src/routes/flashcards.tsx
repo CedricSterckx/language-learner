@@ -1,9 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { HangulChartModal } from '@/components/HangulChartModal';
 import { useKoreanKeyboard } from '@/components/KoreanKeyboardProvider';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
 import { loadUnit } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
@@ -73,7 +72,6 @@ function RouteComponent() {
   const [reviewInput, setReviewInput] = useState('');
   const [reviewFeedback, setReviewFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
   const [showKoreanHint, setShowKoreanHint] = useState(false);
-  const [showHangulModal, setShowHangulModal] = useState(false);
   const [reviewRevealed, setReviewRevealed] = useState(false);
   // queue-based drill state
   const [sessionQueue, setSessionQueue] = useState<string[]>([]);
@@ -489,29 +487,22 @@ function RouteComponent() {
   const card = cards.find((c) => c.id === currentId);
 
   return (
-    <div className='min-h-dvh flex flex-col'>
-      <header className='sticky top-0 z-10 border-b bg-background/80 backdrop-blur'>
-        <div className='mx-auto max-w-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2'>
-          <div className='flex items-center gap-4 min-w-0'>
-            <Link to='/' className='text-sm text-muted-foreground hover:text-foreground'>
-              ← Back to units
-            </Link>
-            <div className='text-sm text-muted-foreground'>
-              {studyMode === 'list' && `Vocabulary List (${totalCount} words)`}
-              {studyMode === 'cards' &&
-                `Queue: ${Math.min(queueIndex + 1, Math.max(1, sessionQueue.length))} / ${sessionQueue.length}`}
-              {studyMode === 'review' &&
-                `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
-            </div>
+    <div className='min-h-[calc(100dvh-3rem)] flex flex-col'>
+      {/* Flashcard-specific controls bar */}
+      <div className='border-b bg-muted/30'>
+        <div className='mx-auto max-w-2xl px-4 py-2 flex flex-wrap items-center justify-between gap-2'>
+          <div className='text-sm text-muted-foreground'>
+            {studyMode === 'list' && `Vocabulary List (${totalCount} words)`}
+            {studyMode === 'cards' &&
+              `Queue: ${Math.min(queueIndex + 1, Math.max(1, sessionQueue.length))} / ${sessionQueue.length}`}
+            {studyMode === 'review' &&
+              `Review: ${Math.min(reviewIndex + 1, reviewOrder.length)} / ${reviewOrder.length}`}
           </div>
-          <div className='flex items-center gap-2 flex-wrap ml-auto'>
-            <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
-              Korean Alphabet (Hangul)
-            </Button>
+          <div className='flex items-center gap-2 flex-wrap'>
             {studyMode === 'cards' && (
               <>
                 <Button variant='outline' size='sm' onClick={togglePromptSide}>
-                  Show: {settings.promptSide === 'korean' ? '한국어 → English' : 'English → 한국어'}
+                  {settings.promptSide === 'korean' ? '한국어 → EN' : 'EN → 한국어'}
                 </Button>
                 <div className='flex items-center gap-2'>
                   <Switch checked={settings.typingMode} onCheckedChange={toggleTypingMode} />
@@ -524,11 +515,11 @@ function RouteComponent() {
                 <div className='flex items-center gap-2'>
                   <Switch checked={showKoreanHint} onCheckedChange={setShowKoreanHint} />
                   <span className='text-sm text-muted-foreground'>
-                    Direction: {showKoreanHint ? '한국어 → English' : 'English → 한국어'}
+                    {showKoreanHint ? '한국어 → EN' : 'EN → 한국어'}
                   </span>
                 </div>
                 <Button variant='outline' size='sm' onClick={exitReview}>
-                  Exit review
+                  Exit
                 </Button>
               </>
             )}
@@ -539,10 +530,9 @@ function RouteComponent() {
             )}
           </div>
         </div>
-      </header>
+      </div>
 
       <main className='flex-1 mx-auto max-w-2xl w-full px-4 py-6 sm:py-8'>
-        {showHangulModal && <HangulChartModal onClose={() => setShowHangulModal(false)} />}
         {studyMode === 'list' ? (
           <>
             <VocabularyList

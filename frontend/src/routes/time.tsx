@@ -1,38 +1,38 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AnalogClock } from '@/components/AnalogClock';
 import { useKoreanKeyboard } from '@/components/KoreanKeyboardProvider';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import {
-  type NumberSystem,
-  type Difficulty,
-  generateQuestion,
-  checkAnswer,
-  getDifficultyRange,
-} from '@/lib/numbers';
+  type TimeDifficulty,
+  generateTimeQuestion,
+  checkTimeAnswer,
+  getTimeDifficultyLabel,
+} from '@/lib/time';
 
-export const Route = createFileRoute('/numbers')({
+export const Route = createFileRoute('/time')({
   component: RouteComponent,
 });
 
 type AttemptRecord = {
-  number: number;
-  system: 'sino' | 'native';
+  hour: number;
+  minute: number;
   correctAnswer: string;
   userAnswer: string;
   isCorrect: boolean;
 };
 
 type ExerciseState = {
-  currentNumber: number;
-  currentSystem: 'sino' | 'native';
-  currentAnswer: string;
+  hour: number;
+  minute: number;
+  answer: string;
 };
 
 function RouteComponent() {
   const [mode, setMode] = useState<'config' | 'exercise' | 'results'>('config');
-  const [numberSystem, setNumberSystem] = useState<NumberSystem>('sino');
-  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [difficulty, setDifficulty] = useState<TimeDifficulty>('easy');
+  const [is24h, setIs24h] = useState(false);
   const keyboard = useKoreanKeyboard();
 
   // Exercise state
@@ -40,6 +40,9 @@ function RouteComponent() {
   const [userInput, setUserInput] = useState('');
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
+
+  const correctCount = attempts.filter((a) => a.isCorrect).length;
+  const wrongCount = attempts.filter((a) => !a.isCorrect).length;
 
   // Connect input to global keyboard when in exercise mode
   useEffect(() => {
@@ -49,12 +52,9 @@ function RouteComponent() {
     return () => keyboard.disconnect();
   }, [mode, feedback, userInput, keyboard]);
 
-  const correctCount = attempts.filter((a) => a.isCorrect).length;
-  const wrongCount = attempts.filter((a) => !a.isCorrect).length;
-
   const startExercise = () => {
-    const q = generateQuestion(difficulty, numberSystem);
-    setExercise({ currentNumber: q.number, currentSystem: q.system, currentAnswer: q.answer });
+    const q = generateTimeQuestion(difficulty, is24h);
+    setExercise({ hour: q.hour, minute: q.minute, answer: q.answer });
     setAttempts([]);
     setUserInput('');
     setFeedback('idle');
@@ -64,11 +64,11 @@ function RouteComponent() {
   const submitAnswer = () => {
     if (!exercise || !userInput.trim()) return;
 
-    const isCorrect = checkAnswer(userInput, exercise.currentAnswer);
+    const isCorrect = checkTimeAnswer(userInput, exercise.answer);
     const record: AttemptRecord = {
-      number: exercise.currentNumber,
-      system: exercise.currentSystem,
-      correctAnswer: exercise.currentAnswer,
+      hour: exercise.hour,
+      minute: exercise.minute,
+      correctAnswer: exercise.answer,
       userAnswer: userInput.trim(),
       isCorrect,
     };
@@ -76,10 +76,10 @@ function RouteComponent() {
     setAttempts((prev) => [...prev, record]);
     setFeedback(isCorrect ? 'correct' : 'incorrect');
 
-    // After brief feedback, generate next question (avoiding same number)
+    // After feedback, generate next question
     setTimeout(() => {
-      const q = generateQuestion(difficulty, numberSystem, exercise.currentNumber);
-      setExercise({ currentNumber: q.number, currentSystem: q.system, currentAnswer: q.answer });
+      const q = generateTimeQuestion(difficulty, is24h, { hour: exercise.hour, minute: exercise.minute });
+      setExercise({ hour: q.hour, minute: q.minute, answer: q.answer });
       setUserInput('');
       setFeedback('idle');
     }, isCorrect ? 500 : 5000);
@@ -97,9 +97,8 @@ function RouteComponent() {
     setFeedback('idle');
   };
 
-  const difficultyLabel = (d: Difficulty) => {
-    const range = getDifficultyRange(d);
-    return `${d.charAt(0).toUpperCase() + d.slice(1)} (${range.min}-${range.max.toLocaleString()})`;
+  const formatTime = (hour: number, minute: number) => {
+    return `${hour}:${minute.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -113,12 +112,11 @@ function RouteComponent() {
 
         {mode === 'config' && (
           <ConfigPanel
-            numberSystem={numberSystem}
             difficulty={difficulty}
-            onSystemChange={setNumberSystem}
+            is24h={is24h}
             onDifficultyChange={setDifficulty}
+            onFormatChange={setIs24h}
             onStart={startExercise}
-            difficultyLabel={difficultyLabel}
           />
         )}
 
@@ -136,7 +134,12 @@ function RouteComponent() {
         )}
 
         {mode === 'results' && (
-          <ResultsPanel attempts={attempts} onBack={backToConfig} onRestart={startExercise} />
+          <ResultsPanel
+            attempts={attempts}
+            formatTime={formatTime}
+            onBack={backToConfig}
+            onRestart={startExercise}
+          />
         )}
       </main>
     </div>
@@ -144,65 +147,56 @@ function RouteComponent() {
 }
 
 function ConfigPanel(props: {
-  numberSystem: NumberSystem;
-  difficulty: Difficulty;
-  onSystemChange: (s: NumberSystem) => void;
-  onDifficultyChange: (d: Difficulty) => void;
+  difficulty: TimeDifficulty;
+  is24h: boolean;
+  onDifficultyChange: (d: TimeDifficulty) => void;
+  onFormatChange: (is24h: boolean) => void;
   onStart: () => void;
-  difficultyLabel: (d: Difficulty) => string;
 }) {
-  const { numberSystem, difficulty, onSystemChange, onDifficultyChange, onStart, difficultyLabel } = props;
+  const { difficulty, is24h, onDifficultyChange, onFormatChange, onStart } = props;
 
   return (
     <div className='space-y-8'>
       <div className='text-center space-y-2'>
-        <h1 className='text-3xl font-semibold tracking-tight'>Korean Numbers Practice</h1>
-        <p className='text-muted-foreground'>Practice Sino-Korean and Native Korean numbers</p>
+        <h1 className='text-3xl font-semibold tracking-tight'>Korean Time Practice</h1>
+        <p className='text-muted-foreground'>Learn to tell time in Korean</p>
       </div>
 
       <div className='space-y-6'>
         <div className='space-y-3'>
-          <label className='text-sm font-medium'>Number System</label>
-          <div className='grid grid-cols-3 gap-2'>
-            {(['sino', 'native', 'both'] as NumberSystem[]).map((sys) => (
-              <Button
-                key={sys}
-                variant={numberSystem === sys ? 'default' : 'outline'}
-                onClick={() => onSystemChange(sys)}
-                className='h-12'
-              >
-                {sys === 'sino' && '한자어 (Sino)'}
-                {sys === 'native' && '고유어 (Native)'}
-                {sys === 'both' && 'Both'}
-              </Button>
-            ))}
+          <label className='text-sm font-medium'>Time Format</label>
+          <div className='grid grid-cols-2 gap-2'>
+            <Button
+              variant={!is24h ? 'default' : 'outline'}
+              onClick={() => onFormatChange(false)}
+              className='h-12'
+            >
+              12-hour (1-12)
+            </Button>
+            <Button
+              variant={is24h ? 'default' : 'outline'}
+              onClick={() => onFormatChange(true)}
+              className='h-12'
+            >
+              24-hour (0-23)
+            </Button>
           </div>
-          <p className='text-xs text-muted-foreground'>
-            {numberSystem === 'sino' && 'Sino-Korean: Used for dates, money, phone numbers (0-999,999)'}
-            {numberSystem === 'native' && 'Native Korean: Used for counting, hours, age (1-99 only)'}
-            {numberSystem === 'both' && 'Practice both systems randomly'}
-          </p>
         </div>
 
         <div className='space-y-3'>
           <label className='text-sm font-medium'>Difficulty</label>
-          <div className='grid grid-cols-3 gap-2'>
-            {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
+          <div className='grid grid-cols-2 gap-2'>
+            {(['easy', 'medium', 'hard', 'expert'] as TimeDifficulty[]).map((d) => (
               <Button
                 key={d}
                 variant={difficulty === d ? 'default' : 'outline'}
                 onClick={() => onDifficultyChange(d)}
                 className='h-12'
               >
-                {difficultyLabel(d)}
+                {getTimeDifficultyLabel(d)}
               </Button>
             ))}
           </div>
-          {numberSystem === 'native' && difficulty !== 'easy' && (
-            <p className='text-xs text-amber-600 dark:text-amber-400'>
-              Note: Native Korean only goes up to 99
-            </p>
-          )}
         </div>
 
         <Button onClick={onStart} size='lg' className='w-full h-14 text-lg'>
@@ -236,9 +230,9 @@ function ExercisePanel(props: {
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div className='space-y-1'>
-          <div className='text-sm text-muted-foreground'>Write the number in Korean</div>
+          <div className='text-sm text-muted-foreground'>What time is it?</div>
           <div className='text-xs text-muted-foreground'>
-            System: {exercise.currentSystem === 'sino' ? '한자어 (Sino-Korean)' : '고유어 (Native Korean)'}
+            Write the time in Korean
           </div>
         </div>
         <div className='flex items-center gap-4 text-sm'>
@@ -247,13 +241,8 @@ function ExercisePanel(props: {
         </div>
       </div>
 
-      <div className={`rounded-xl border-2 p-8 text-center transition-colors ${feedbackClasses}`}>
-        <div className='text-6xl sm:text-7xl font-bold tracking-tight text-primary'>
-          {exercise.currentNumber.toLocaleString()}
-        </div>
-        <div className='mt-3 text-sm text-muted-foreground'>
-          {exercise.currentSystem === 'sino' ? 'Sino-Korean (한자어)' : 'Native Korean (고유어)'}
-        </div>
+      <div className={`rounded-xl border-2 p-6 sm:p-8 flex justify-center transition-colors ${feedbackClasses}`}>
+        <AnalogClock hour={exercise.hour} minute={exercise.minute} size={220} />
       </div>
 
       {feedback === 'incorrect' && (
@@ -261,7 +250,7 @@ function ExercisePanel(props: {
           <div className='text-sm text-red-700 dark:text-red-300'>Incorrect!</div>
           <div className='text-base'>
             <span className='text-muted-foreground'>Correct answer: </span>
-            <span className='font-medium text-foreground'>{exercise.currentAnswer}</span>
+            <span className='font-medium text-foreground'>{exercise.answer}</span>
           </div>
           <div className='text-sm text-muted-foreground'>
             Your answer: {userInput}
@@ -285,7 +274,7 @@ function ExercisePanel(props: {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && userInput.trim()) onSubmit();
             }}
-            placeholder='Type the Korean number...'
+            placeholder='예: 세 시 삼십 분'
             autoFocus
             className='text-lg h-12'
           />
@@ -305,10 +294,11 @@ function ExercisePanel(props: {
 
 function ResultsPanel(props: {
   attempts: AttemptRecord[];
+  formatTime: (hour: number, minute: number) => string;
   onBack: () => void;
   onRestart: () => void;
 }) {
-  const { attempts, onBack, onRestart } = props;
+  const { attempts, formatTime, onBack, onRestart } = props;
 
   const correct = attempts.filter((a) => a.isCorrect).length;
   const total = attempts.length;
@@ -352,9 +342,8 @@ function ResultsPanel(props: {
                       {attempt.isCorrect ? '✓' : '✗'}
                     </span>
                     <div>
-                      <div className='font-medium'>{attempt.number.toLocaleString()}</div>
-                      <div className='text-xs text-muted-foreground'>
-                        {attempt.system === 'sino' ? 'Sino-Korean' : 'Native Korean'}
+                      <div className='font-mono font-medium'>
+                        {formatTime(attempt.hour, attempt.minute)}
                       </div>
                     </div>
                   </div>
