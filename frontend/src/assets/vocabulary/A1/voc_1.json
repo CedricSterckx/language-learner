@@ -1,60 +1,42 @@
 [
-  { "korean": "나라", "english": "country" },
-  { "korean": "직업", "english": "job" },
-  { "korean": "한국", "english": "Korea" },
-  { "korean": "사람", "english": "person" },
-  { "korean": "캐나다", "english": "Canada" },
-  { "korean": "베트남", "english": "Vietnam" },
-  { "korean": "미국", "english": "U.S.A." },
-  { "korean": "프랑스", "english": "France" },
-  { "korean": "태국", "english": "Thailand" },
-  { "korean": "인도네시아", "english": "Indonesia" },
-  { "korean": "중국", "english": "China" },
-  { "korean": "일본", "english": "Japan" },
-  { "korean": "러시아", "english": "Russia" },
-  { "korean": "케냐", "english": "Kenya" },
-  { "korean": "회사원", "english": "office worker" },
-  { "korean": "대학생", "english": "college student" },
-  { "korean": "의사", "english": "doctor" },
-  { "korean": "경찰", "english": "police officer" },
-  { "korean": "선생님", "english": "teacher" },
-  { "korean": "가수", "english": "singer" },
-  { "korean": "요리사", "english": "cook" },
-{ "korean": "네", "english": "yes" },
-
-{ "korean": "아니요", "english": "no" },
-
-{ "korean": "나", "english": "I" },
-
-{ "korean": "모자", "english": "hat" },
-
-{ "korean": "책", "english": "book" },
-
-{ "korean": "공책", "english": "notebook" },
-
-{ "korean": "한복", "english": "Hanbok" },
-
-{ "korean": "커피", "english": "coffee" },
-
-{ "korean": "언니", "english": "older sister" },
-
-{ "korean": "동생", "english": "younger brother / sister" },
-
-{ "korean": "누구", "english": "who" },
-
-{ "korean": "친구", "english": "friend" },
-
-{ "korean": "씨", "english": "Mr. / Ms. / Miss." },
-
-{ "korean": "제", "english": "my" },
-
-{ "korean": "아버지", "english": "father" },
-
-{ "korean": "어머니", "english": "mother" },
-
-{ "korean": "이름", "english": "name" },
-
-{ "korean": "학생", "english": "student" },
-
-{ "korean": "자기소개", "english": "self-introduction" }
+  { "korean": "나라", "english": "country", "exampleKorean": "한국은 좋은 나라예요.", "exampleEnglish": "Korea is a good country." },
+  { "korean": "직업", "english": "job", "exampleKorean": "직업이 뭐예요?", "exampleEnglish": "What is your job?" },
+  { "korean": "한국", "english": "Korea", "exampleKorean": "저는 한국에 살아요.", "exampleEnglish": "I live in Korea." },
+  { "korean": "사람", "english": "person", "exampleKorean": "저 사람은 누구예요?", "exampleEnglish": "Who is that person?" },
+  { "korean": "캐나다", "english": "Canada", "exampleKorean": "캐나다는 추워요.", "exampleEnglish": "Canada is cold." },
+  { "korean": "베트남", "english": "Vietnam", "exampleKorean": "베트남 음식이 맛있어요.", "exampleEnglish": "Vietnamese food is delicious." },
+  { "korean": "미국", "english": "U.S.A.", "exampleKorean": "미국에서 왔어요.", "exampleEnglish": "I came from the U.S.A." },
+  { "korean": "프랑스", "english": "France", "exampleKorean": "프랑스에 가고 싶어요.", "exampleEnglish": "I want to go to France." },
+  { "korean": "태국", "english": "Thailand", "exampleKorean": "태국 날씨가 더워요.", "exampleEnglish": "Thailand's weather is hot." },
+  { "korean": "인도네시아", "english": "Indonesia", "exampleKorean": "인도네시아는 섬이 많아요.", "exampleEnglish": "Indonesia has many islands." },
+  { "korean": "중국", "english": "China", "exampleKorean": "중국어를 배워요.", "exampleEnglish": "I am learning Chinese." },
+  { "korean": "일본", "english": "Japan", "exampleKorean": "일본에 여행 갔어요.", "exampleEnglish": "I traveled to Japan." },
+  { "korean": "러시아", "english": "Russia", "exampleKorean": "러시아는 아주 커요.", "exampleEnglish": "Russia is very big." },
+  { "korean": "케냐", "english": "Kenya", "exampleKorean": "케냐에 사자가 있어요.", "exampleEnglish": "There are lions in Kenya." },
+  { "korean": "회사원", "english": "office worker", "exampleKorean": "저는 회사원이에요.", "exampleEnglish": "I am an office worker." },
+  { "korean": "대학생", "english": "college student", "exampleKorean": "대학생이 많아요.", "exampleEnglish": "There are many college students." },
+  { "korean": "의사", "english": "doctor", "exampleKorean": "의사 선생님이 친절해요.", "exampleEnglish": "The doctor is kind." },
+  { "korean": "경찰", "english": "police officer", "exampleKorean": "경찰이 도와줬어요.", "exampleEnglish": "The police officer helped me." },
+  { "korean": "선생님", "english": "teacher", "exampleKorean": "선생님, 안녕하세요!", "exampleEnglish": "Hello, teacher!" },
+  { "korean": "가수", "english": "singer", "exampleKorean": "그 가수가 노래해요.", "exampleEnglish": "That singer is singing." },
+  { "korean": "요리사", "english": "cook", "exampleKorean": "요리사가 맛있게 만들어요.", "exampleEnglish": "The cook makes delicious food." },
+  { "korean": "네", "english": "yes", "exampleKorean": "네, 맞아요.", "exampleEnglish": "Yes, that's right." },
+  { "korean": "아니요", "english": "no", "exampleKorean": "아니요, 괜찮아요.", "exampleEnglish": "No, it's okay." },
+  { "korean": "나", "english": "I", "exampleKorean": "나는 학생이야.", "exampleEnglish": "I am a student." },
+  { "korean": "모자", "english": "hat", "exampleKorean": "모자가 예뻐요.", "exampleEnglish": "The hat is pretty." },
+  { "korean": "책", "english": "book", "exampleKorean": "책을 읽어요.", "exampleEnglish": "I read a book." },
+  { "korean": "공책", "english": "notebook", "exampleKorean": "공책에 써요.", "exampleEnglish": "I write in the notebook." },
+  { "korean": "한복", "english": "Hanbok", "exampleKorean": "한복이 아름다워요.", "exampleEnglish": "The Hanbok is beautiful." },
+  { "korean": "커피", "english": "coffee", "exampleKorean": "커피 한 잔 주세요.", "exampleEnglish": "One cup of coffee, please." },
+  { "korean": "언니", "english": "older sister", "exampleKorean": "언니가 요리해요.", "exampleEnglish": "My older sister is cooking." },
+  { "korean": "동생", "english": "younger brother / sister", "exampleKorean": "동생이 학교에 가요.", "exampleEnglish": "My younger sibling goes to school." },
+  { "korean": "누구", "english": "who", "exampleKorean": "누구세요?", "exampleEnglish": "Who are you?" },
+  { "korean": "친구", "english": "friend", "exampleKorean": "친구를 만나요.", "exampleEnglish": "I meet a friend." },
+  { "korean": "씨", "english": "Mr. / Ms. / Miss.", "exampleKorean": "김 씨, 안녕하세요.", "exampleEnglish": "Hello, Mr./Ms. Kim." },
+  { "korean": "제", "english": "my", "exampleKorean": "제 이름은 민수예요.", "exampleEnglish": "My name is Minsu." },
+  { "korean": "아버지", "english": "father", "exampleKorean": "아버지가 일해요.", "exampleEnglish": "My father is working." },
+  { "korean": "어머니", "english": "mother", "exampleKorean": "어머니가 요리해요.", "exampleEnglish": "My mother is cooking." },
+  { "korean": "이름", "english": "name", "exampleKorean": "이름이 뭐예요?", "exampleEnglish": "What is your name?" },
+  { "korean": "학생", "english": "student", "exampleKorean": "저는 학생이에요.", "exampleEnglish": "I am a student." },
+  { "korean": "자기소개", "english": "self-introduction", "exampleKorean": "자기소개 해 주세요.", "exampleEnglish": "Please introduce yourself." }
 ]

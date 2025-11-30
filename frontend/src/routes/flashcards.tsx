@@ -25,6 +25,8 @@ function speakKorean(text: string) {
 type VocabCard = {
   korean: string;
   english: string;
+  exampleKorean?: string;
+  exampleEnglish?: string;
   id: string;
 };
 
@@ -561,6 +563,8 @@ function RouteComponent() {
               key={currentId}
               prompt={settings.promptSide === 'korean' ? card.korean : card.english}
               answer={settings.promptSide === 'korean' ? card.english : card.korean}
+              exampleKorean={card.exampleKorean}
+              exampleEnglish={card.exampleEnglish}
               revealed={showAnswer}
               showReverse={showReverse}
               onReveal={() => setShowAnswer(true)}
@@ -701,12 +705,10 @@ function VocabularyList(props: {
   const easyCount = easySet.size;
   const percent = total > 0 ? Math.round((easyCount / total) * 100) : 0;
 
-  const cardsWithStatus = cards.map((card) => {
-    return {
-      ...card,
-      isEasy: easySet.has(card.id),
-    } as VocabCard & { isEasy: boolean };
-  });
+  const cardsWithStatus = cards.map((card) => ({
+    ...card,
+    isEasy: easySet.has(card.id),
+  }));
 
   return (
     <div className='space-y-6'>
@@ -751,26 +753,33 @@ function VocabularyList(props: {
                 : 'border-border bg-card'
             }`}
           >
-            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
-              <div className='flex-1'>
-                <div className='flex items-center gap-3 sm:gap-4 flex-wrap'>
-                  <div className='flex items-center gap-2'>
-                    <Button
-                      variant='ghost'
-                      size='icon-sm'
-                      onClick={() => speakKorean(card.korean)}
-                      aria-label='Speak Korean word'
-                      title='Play pronunciation'
-                    >
-                      <span>🔊</span>
-                    </Button>
-                    <div className={`${largeText ? 'text-2xl md:text-3xl' : 'text-xl'} font-medium`}>{card.korean}</div>
+            <div className='flex flex-col gap-2'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+                <div className='flex-1'>
+                  <div className='flex items-center gap-3 sm:gap-4 flex-wrap'>
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        variant='ghost'
+                        size='icon-sm'
+                        onClick={() => speakKorean(card.korean)}
+                        aria-label='Speak Korean word'
+                        title='Play pronunciation'
+                      >
+                        <span>🔊</span>
+                      </Button>
+                      <div className={`${largeText ? 'text-2xl md:text-3xl' : 'text-xl'} font-medium`}>{card.korean}</div>
+                    </div>
+                    <div className='text-muted-foreground'>→</div>
+                    <div className={`${largeText ? 'text-xl md:text-2xl' : 'text-lg'}`}>{card.english}</div>
                   </div>
-                  <div className='text-muted-foreground'>→</div>
-                  <div className={`${largeText ? 'text-xl md:text-2xl' : 'text-lg'}`}>{card.english}</div>
                 </div>
               </div>
-              <div className='flex items-center gap-3 sm:gap-4 text-sm text-muted-foreground' />
+              {card.exampleKorean && card.exampleEnglish && (
+                <div className='ml-10 p-2 rounded bg-muted/30 border-l-2 border-primary/30'>
+                  <div className={`${largeText ? 'text-base' : 'text-sm'} text-foreground/80`}>{card.exampleKorean}</div>
+                  <div className={`${largeText ? 'text-sm' : 'text-xs'} text-muted-foreground mt-0.5`}>{card.exampleEnglish}</div>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -880,6 +889,8 @@ function ReviewDrill(props: {
         <Flashcard
           prompt={showKorean ? current.korean : current.english}
           answer={showKorean ? current.english : current.korean}
+          exampleKorean={current.exampleKorean}
+          exampleEnglish={current.exampleEnglish}
           revealed={revealed}
           showReverse={!revealed}
           onReveal={onReveal}
@@ -937,13 +948,15 @@ function ReviewDrill(props: {
 function Flashcard(props: {
   prompt: string;
   answer: string;
+  exampleKorean?: string;
+  exampleEnglish?: string;
   revealed: boolean;
   showReverse: boolean;
   onReveal: () => void;
   onToggleReverse: () => void;
   onSpeakKorean: () => void;
 }) {
-  const { prompt, answer, revealed, showReverse, onReveal, onToggleReverse, onSpeakKorean } = props;
+  const { prompt, answer, exampleKorean, exampleEnglish, revealed, showReverse, onReveal, onToggleReverse, onSpeakKorean } = props;
 
   const isFlipped = revealed && !showReverse; // front: prompt, back: answer
 
@@ -987,6 +1000,12 @@ function Flashcard(props: {
         >
           <div className='text-center space-y-3'>
             <div className='text-3xl md:text-4xl font-semibold tracking-tight'>{answer}</div>
+            {exampleKorean && exampleEnglish && (
+              <div className='mt-2 p-3 rounded-lg bg-muted/50 border border-border/50'>
+                <div className='text-base md:text-lg text-foreground/90'>{exampleKorean}</div>
+                <div className='text-sm text-muted-foreground mt-1'>{exampleEnglish}</div>
+              </div>
+            )}
             {revealed && !showReverse && (
               <div className='text-sm text-muted-foreground'>Tap card to flip • Showing answer</div>
             )}
