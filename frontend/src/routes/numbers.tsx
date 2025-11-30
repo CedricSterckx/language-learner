@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KoreanNumbersChartModal } from '@/components/KoreanNumbersChartModal';
+import { KoreanKeyboard } from '@/components/KoreanKeyboard';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import {
@@ -34,6 +35,7 @@ function RouteComponent() {
   const [numberSystem, setNumberSystem] = useState<NumberSystem>('sino');
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [showChartModal, setShowChartModal] = useState(false);
+  const [showKeyboard, setShowKeyboard] = useState(false);
 
   // Exercise state
   const [exercise, setExercise] = useState<ExerciseState | null>(null);
@@ -68,13 +70,13 @@ function RouteComponent() {
     setAttempts((prev) => [...prev, record]);
     setFeedback(isCorrect ? 'correct' : 'incorrect');
 
-    // After brief feedback, generate next question
+    // After brief feedback, generate next question (avoiding same number)
     setTimeout(() => {
-      const q = generateQuestion(difficulty, numberSystem);
+      const q = generateQuestion(difficulty, numberSystem, exercise.currentNumber);
       setExercise({ currentNumber: q.number, currentSystem: q.system, currentAnswer: q.answer });
       setUserInput('');
       setFeedback('idle');
-    }, isCorrect ? 500 : 1500);
+    }, isCorrect ? 500 : 5000);
   };
 
   const endExercise = () => {
@@ -107,6 +109,15 @@ function RouteComponent() {
                 ✓ {correctCount} | ✗ {wrongCount}
               </div>
             )}
+            {mode === 'exercise' && (
+              <Button
+                variant={showKeyboard ? 'default' : 'outline'}
+                size='sm'
+                onClick={() => setShowKeyboard(!showKeyboard)}
+              >
+                ⌨️ Keyboard
+              </Button>
+            )}
             <Button variant='outline' size='sm' onClick={() => setShowChartModal(true)}>
               Numbers Chart
             </Button>
@@ -138,6 +149,8 @@ function RouteComponent() {
             onInputChange={setUserInput}
             onSubmit={submitAnswer}
             onEnd={endExercise}
+            showKeyboard={showKeyboard}
+            onCloseKeyboard={() => setShowKeyboard(false)}
           />
         )}
 
@@ -228,8 +241,10 @@ function ExercisePanel(props: {
   onInputChange: (v: string) => void;
   onSubmit: () => void;
   onEnd: () => void;
+  showKeyboard: boolean;
+  onCloseKeyboard: () => void;
 }) {
-  const { exercise, userInput, feedback, correctCount, wrongCount, onInputChange, onSubmit, onEnd } = props;
+  const { exercise, userInput, feedback, correctCount, wrongCount, onInputChange, onSubmit, onEnd, showKeyboard, onCloseKeyboard } = props;
 
   const feedbackClasses =
     feedback === 'correct'
@@ -304,6 +319,18 @@ function ExercisePanel(props: {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Spacer for keyboard */}
+      {showKeyboard && <div className='h-56' />}
+
+      {/* Korean Keyboard */}
+      {showKeyboard && (
+        <KoreanKeyboard
+          value={userInput}
+          onChange={onInputChange}
+          onClose={onCloseKeyboard}
+        />
       )}
     </div>
   );

@@ -138,10 +138,12 @@ export const generateRandomNumber = (difficulty: Difficulty): number => {
 
 /**
  * Generate question: returns the number, system to use, and correct answer
+ * Ensures the new number is different from previousNumber
  */
 export const generateQuestion = (
   difficulty: Difficulty,
-  system: NumberSystem
+  system: NumberSystem,
+  previousNumber?: number
 ): { number: number; system: 'sino' | 'native'; answer: string } => {
   let actualSystem: 'sino' | 'native';
   
@@ -154,14 +156,19 @@ export const generateQuestion = (
   }
   
   let num: number;
+  const maxAttempts = 100; // Prevent infinite loop
+  let attempts = 0;
   
-  if (actualSystem === 'native') {
-    // Native Korean only goes 1-99
-    const maxForNative = difficulty === 'easy' ? 9 : 99;
-    num = Math.floor(Math.random() * maxForNative) + 1; // 1 to maxForNative
-  } else {
-    num = generateRandomNumber(difficulty);
-  }
+  do {
+    if (actualSystem === 'native') {
+      // Native Korean only goes 1-99
+      const maxForNative = difficulty === 'easy' ? 9 : 99;
+      num = Math.floor(Math.random() * maxForNative) + 1; // 1 to maxForNative
+    } else {
+      num = generateRandomNumber(difficulty);
+    }
+    attempts++;
+  } while (num === previousNumber && attempts < maxAttempts);
   
   const answer = actualSystem === 'sino' ? toSinoKorean(num) : toNativeKorean(num);
   
