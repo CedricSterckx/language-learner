@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TypingRouteImport } from './routes/typing'
 import { Route as TimeRouteImport } from './routes/time'
 import { Route as NumbersRouteImport } from './routes/numbers'
 import { Route as FlashcardsRouteImport } from './routes/flashcards'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TypingRoute = TypingRouteImport.update({
+  id: '/typing',
+  path: '/typing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TimeRoute = TimeRouteImport.update({
   id: '/time',
   path: '/time',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/flashcards': typeof FlashcardsRoute
   '/numbers': typeof NumbersRoute
   '/time': typeof TimeRoute
+  '/typing': typeof TypingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
   '/numbers': typeof NumbersRoute
   '/time': typeof TimeRoute
+  '/typing': typeof TypingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/flashcards': typeof FlashcardsRoute
   '/numbers': typeof NumbersRoute
   '/time': typeof TimeRoute
+  '/typing': typeof TypingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/flashcards' | '/numbers' | '/time'
+  fullPaths: '/' | '/flashcards' | '/numbers' | '/time' | '/typing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/flashcards' | '/numbers' | '/time'
-  id: '__root__' | '/' | '/flashcards' | '/numbers' | '/time'
+  to: '/' | '/flashcards' | '/numbers' | '/time' | '/typing'
+  id: '__root__' | '/' | '/flashcards' | '/numbers' | '/time' | '/typing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   FlashcardsRoute: typeof FlashcardsRoute
   NumbersRoute: typeof NumbersRoute
   TimeRoute: typeof TimeRoute
+  TypingRoute: typeof TypingRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/typing': {
+      id: '/typing'
+      path: '/typing'
+      fullPath: '/typing'
+      preLoaderRoute: typeof TypingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/time': {
       id: '/time'
       path: '/time'
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   FlashcardsRoute: FlashcardsRoute,
   NumbersRoute: NumbersRoute,
   TimeRoute: TimeRoute,
+  TypingRoute: TypingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

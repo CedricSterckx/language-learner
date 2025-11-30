@@ -17,6 +17,7 @@ export function AppHeader() {
     { path: '/', label: 'Vocabulary' },
     { path: '/numbers', label: 'Numbers' },
     { path: '/time', label: 'Time' },
+    { path: '/typing', label: 'Typing' },
   ];
 
   return (
