@@ -60,10 +60,15 @@ function RouteComponent() {
               Practice your vocabulary with spaced repetition. Select a unit to begin.
             </p>
           </div>
-          <div className='flex justify-center'>
+          <div className='flex justify-center gap-2 flex-wrap'>
             <Button variant='outline' size='sm' onClick={() => setShowHangulModal(true)}>
               📚 Korean Alphabet (Hangul)
             </Button>
+            <Link to='/numbers'>
+              <Button variant='outline' size='sm'>
+                🔢 Korean Numbers
+              </Button>
+            </Link>
           </div>
         </div>
 
