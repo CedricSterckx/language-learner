@@ -148,7 +148,6 @@ function RouteComponent() {
             onInputChange={setUserInput}
             onSubmit={submitAnswer}
             onEnd={endExercise}
-            isKeyboardOpen={keyboard.isOpen}
           />
         )}
 
@@ -239,9 +238,8 @@ function ExercisePanel(props: {
   onInputChange: (v: string) => void;
   onSubmit: () => void;
   onEnd: () => void;
-  isKeyboardOpen: boolean;
 }) {
-  const { exercise, userInput, feedback, correctCount, wrongCount, onInputChange, onSubmit, onEnd, isKeyboardOpen } = props;
+  const { exercise, userInput, feedback, correctCount, wrongCount, onInputChange, onSubmit, onEnd } = props;
 
   const feedbackClasses =
     feedback === 'correct'
@@ -317,9 +315,6 @@ function ExercisePanel(props: {
           </div>
         </div>
       )}
-
-      {/* Spacer for keyboard */}
-      {isKeyboardOpen && <div className='h-56' />}
     </div>
   );
 }

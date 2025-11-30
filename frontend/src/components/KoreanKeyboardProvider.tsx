@@ -55,6 +55,8 @@ export function KoreanKeyboardProvider({ children }: { children: ReactNode }) {
   return (
     <KeyboardContext.Provider value={value}>
       {children}
+      {/* Spacer to allow scrolling when keyboard is open */}
+      {isOpen && <div className='h-60' />}
       {isOpen && inputOnChange && (
         <KoreanKeyboard
           value={inputValue}
