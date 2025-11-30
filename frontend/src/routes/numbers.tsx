@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KoreanNumbersChartModal } from '@/components/KoreanNumbersChartModal';
-import { KoreanKeyboard } from '@/components/KoreanKeyboard';
+import { useKoreanKeyboard } from '@/components/KoreanKeyboardProvider';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   type NumberSystem,
   type Difficulty,
@@ -35,13 +35,21 @@ function RouteComponent() {
   const [numberSystem, setNumberSystem] = useState<NumberSystem>('sino');
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [showChartModal, setShowChartModal] = useState(false);
-  const [showKeyboard, setShowKeyboard] = useState(false);
+  const keyboard = useKoreanKeyboard();
 
   // Exercise state
   const [exercise, setExercise] = useState<ExerciseState | null>(null);
   const [userInput, setUserInput] = useState('');
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
+
+  // Connect input to global keyboard when in exercise mode
+  useEffect(() => {
+    if (mode === 'exercise' && feedback === 'idle') {
+      keyboard.connect(userInput, setUserInput);
+    }
+    return () => keyboard.disconnect();
+  }, [mode, feedback, userInput, keyboard]);
 
   const correctCount = attempts.filter((a) => a.isCorrect).length;
   const wrongCount = attempts.filter((a) => !a.isCorrect).length;
@@ -109,15 +117,6 @@ function RouteComponent() {
                 ✓ {correctCount} | ✗ {wrongCount}
               </div>
             )}
-            {mode === 'exercise' && (
-              <Button
-                variant={showKeyboard ? 'default' : 'outline'}
-                size='sm'
-                onClick={() => setShowKeyboard(!showKeyboard)}
-              >
-                ⌨️ Keyboard
-              </Button>
-            )}
             <Button variant='outline' size='sm' onClick={() => setShowChartModal(true)}>
               Numbers Chart
             </Button>
@@ -149,8 +148,7 @@ function RouteComponent() {
             onInputChange={setUserInput}
             onSubmit={submitAnswer}
             onEnd={endExercise}
-            showKeyboard={showKeyboard}
-            onCloseKeyboard={() => setShowKeyboard(false)}
+            isKeyboardOpen={keyboard.isOpen}
           />
         )}
 
@@ -241,10 +239,9 @@ function ExercisePanel(props: {
   onInputChange: (v: string) => void;
   onSubmit: () => void;
   onEnd: () => void;
-  showKeyboard: boolean;
-  onCloseKeyboard: () => void;
+  isKeyboardOpen: boolean;
 }) {
-  const { exercise, userInput, feedback, correctCount, wrongCount, onInputChange, onSubmit, onEnd, showKeyboard, onCloseKeyboard } = props;
+  const { exercise, userInput, feedback, correctCount, wrongCount, onInputChange, onSubmit, onEnd, isKeyboardOpen } = props;
 
   const feedbackClasses =
     feedback === 'correct'
@@ -322,16 +319,7 @@ function ExercisePanel(props: {
       )}
 
       {/* Spacer for keyboard */}
-      {showKeyboard && <div className='h-56' />}
-
-      {/* Korean Keyboard */}
-      {showKeyboard && (
-        <KoreanKeyboard
-          value={userInput}
-          onChange={onInputChange}
-          onClose={onCloseKeyboard}
-        />
-      )}
+      {isKeyboardOpen && <div className='h-56' />}
     </div>
   );
 }

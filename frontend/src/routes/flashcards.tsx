@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { HangulChartModal } from '@/components/HangulChartModal';
+import { useKoreanKeyboard } from '@/components/KoreanKeyboardProvider';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
 import { loadUnit } from '@/lib/vocabulary';
@@ -82,6 +83,19 @@ function RouteComponent() {
 
   const storage = useMemo(() => getStorageProvider(), []);
   const [resumeCandidate, setResumeCandidate] = useState<SessionStateV1 | null>(null);
+  const keyboard = useKoreanKeyboard();
+
+  // Connect to global Korean keyboard based on current mode
+  useEffect(() => {
+    if (studyMode === 'cards' && settings.typingMode && !showAnswer) {
+      keyboard.connect(typedAnswer, setTypedAnswer);
+    } else if (studyMode === 'review' && !reviewRevealed) {
+      keyboard.connect(reviewInput, setReviewInput);
+    } else {
+      keyboard.disconnect();
+    }
+    return () => keyboard.disconnect();
+  }, [studyMode, settings.typingMode, showAnswer, reviewRevealed, typedAnswer, reviewInput, keyboard]);
 
   useEffect(() => {
     void (async () => {
