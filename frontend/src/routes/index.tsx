@@ -101,12 +101,13 @@ function RouteComponent() {
             <Link key={unit.id} to='/flashcards' search={{ unit: unit.id }}>
               <Button
                 variant='outline'
-                className='w-full h-20 sm:h-24 flex flex-col items-center justify-center space-y-2 hover:shadow-md transition-shadow cursor-pointer'
+                className='w-full h-auto min-h-[100px] flex flex-col items-center justify-center space-y-3 p-5 hover:shadow-md transition-shadow cursor-pointer relative'
               >
                 <div className='text-lg font-medium'>{unit.name}</div>
                 <div className='text-sm text-muted-foreground'>
                   <UnitKeywords unitId={unit.id} />
                 </div>
+                <UnitWordCount unitId={unit.id} />
               </Button>
             </Link>
           ))}
@@ -141,6 +142,34 @@ function UnitKeywords({ unitId }: { unitId: string }) {
   }, [unitId]);
 
   return <span>{text}</span>;
+}
+
+function UnitWordCount({ unitId }: { unitId: string }) {
+  const [wordCount, setWordCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const items = await (await import('@/lib/vocabulary')).loadUnit(unitId);
+        if (cancelled) return;
+        setWordCount(items.length);
+      } catch {
+        if (!cancelled) setWordCount(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [unitId]);
+
+  if (wordCount === null) return null;
+
+  return (
+    <span className='absolute bottom-3 right-3 text-xs text-muted-foreground'>
+      {wordCount} words
+    </span>
+  );
 }
 
 function computeKeywords(items: { korean: string; english: string }[], max = 3): string[] {
