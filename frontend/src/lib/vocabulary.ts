@@ -1,4 +1,9 @@
-export type VocabItem = { korean: string; english: string };
+export type VocabItem = {
+  korean: string;
+  english: string;
+  exampleKorean?: string;
+  exampleEnglish?: string;
+};
 
 // Discover all unit JSON files under assets. Vite replaces this at build time.
 const unitModules = import.meta.glob('../assets/vocabulary/A1/*.json');

@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.66.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-toggle": "^1.1.10",
@@ -27,6 +29,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "vitest": "^2.1.4",
     "@biomejs/biome": "2.2.6",
     "@eslint/js": "^9.36.0",
     "@tanstack/router-plugin": "^1.133.13",

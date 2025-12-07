@@ -30,6 +30,10 @@ export interface StorageProvider {
   deleteSession(unit: string): Promise<void>;
 }
 
+export interface ProgressMap {
+  [cardId: string]: import('./scheduler').ProgressRecord;
+}
+
 const SESSION_KEY = (unit: string) => `flashcards:session:${unit}`;
 
 export class LocalStorageProvider implements StorageProvider {
@@ -87,4 +91,26 @@ let providerSingleton: StorageProvider | null = null;
 export function getStorageProvider(): StorageProvider {
   if (!providerSingleton) providerSingleton = new LocalStorageProvider();
   return providerSingleton;
+}
+
+const PROGRESS_KEY = (unit: string) => `flashcards:progress:${unit}`;
+
+export async function loadProgress(unit: string): Promise<ProgressMap> {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY(unit));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as ProgressMap;
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+export async function saveProgress(unit: string, data: ProgressMap): Promise<void> {
+  try {
+    localStorage.setItem(PROGRESS_KEY(unit), JSON.stringify(data));
+  } catch {
+    // ignore quota errors
+  }
 }

@@ -2,8 +2,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useKoreanKeyboard } from '@/components/KoreanKeyboardProvider';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
+import { getStorageProvider, loadProgress, saveProgress, type ProgressMap, type SessionStateV1 } from '@/lib/persistence';
+import { schedule, isDue, DEFAULT_PROGRESS, type GradeQuality } from '@/lib/scheduler';
 import { loadUnit } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -30,8 +32,6 @@ type VocabCard = {
   id: string;
 };
 
-type Quality = 'again' | 'hard' | 'good' | 'easy';
-
 type Settings = {
   promptSide: 'korean' | 'english';
   typingMode: boolean;
@@ -55,9 +55,18 @@ export const Route = createFileRoute('/flashcards')({
 
 function RouteComponent() {
   const { unit } = Route.useSearch();
-  const [cards, setCards] = useState<VocabCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const cardsQuery = useQuery({
+    queryKey: ['unit', unit],
+    queryFn: async () => {
+      const raw = await loadUnit(unit);
+      return raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` })) satisfies VocabCard[];
+    },
+  });
+  const progressQuery = useQuery({
+    queryKey: ['progress', unit],
+    queryFn: () => loadProgress(unit),
+  });
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -83,6 +92,14 @@ function RouteComponent() {
   const [resumeCandidate, setResumeCandidate] = useState<SessionStateV1 | null>(null);
   const keyboard = useKoreanKeyboard();
 
+  const cards = cardsQuery.data ?? [];
+  const progressMap: ProgressMap = progressQuery.data ?? {};
+  const loading = cardsQuery.isLoading || progressQuery.isLoading;
+  const error = cardsQuery.error instanceof Error ? cardsQuery.error.message : null;
+  const saveProgressMutation = useMutation({
+    mutationFn: (data: ProgressMap) => saveProgress(unit, data),
+  });
+
   // Connect to global Korean keyboard based on current mode
   useEffect(() => {
     if (studyMode === 'cards' && settings.typingMode && !showAnswer) {
@@ -95,20 +112,6 @@ function RouteComponent() {
     return () => keyboard.disconnect();
   }, [studyMode, settings.typingMode, showAnswer, reviewRevealed, typedAnswer, reviewInput, keyboard]);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        setLoading(true);
-        const raw = await loadUnit(unit);
-        const withIds: VocabCard[] = raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
-        setCards(withIds);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [unit]);
 
   // Load saved session once cards are available
   useEffect(() => {
@@ -193,14 +196,18 @@ function RouteComponent() {
 
   const gradeHints = useMemo(() => {
     return {
-      again: 'add back: +2',
-      hard: 'add back: +5',
-      good: 'add back: end',
-      easy: 'remove',
+      again: 'Review in ~10s',
+      hard: 'Short review (~1m)',
+      good: 'Longer (~5m+)',
+      easy: 'Later (~10m+)',
     } as const;
   }, []);
 
   const totalCount = cards.length;
+  const dueCount = useMemo(() => {
+    const now = Date.now();
+    return cards.filter((c) => isDue(progressMap[c.id], now)).length;
+  }, [cards, progressMap]);
 
   useEffect(() => {
     if (studyMode === 'list') {
@@ -208,66 +215,57 @@ function RouteComponent() {
     }
   }, [studyMode]);
 
-  function handleGrade(quality: Quality) {
-    return handleGradeQueue(quality);
-  }
+  useEffect(() => {
+    if (studyMode !== 'cards') return;
+    const canonicalQueue = buildQueue(cards, progressMap);
+    if (sessionQueue.length === 0 && canonicalQueue.length > 0) {
+      setSessionQueue(canonicalQueue);
+      setCurrentId(canonicalQueue[0]);
+      setQueueIndex(0);
+      return;
+    }
+    if (currentId && !canonicalQueue.includes(currentId) && canonicalQueue.length > 0) {
+      setSessionQueue(canonicalQueue);
+      setCurrentId(canonicalQueue[0]);
+      setQueueIndex(0);
+    }
+  }, [studyMode, cards, progressMap, sessionQueue, currentId]);
 
-  function startCards() {
-    setStudyMode('cards');
-    const shuffled = shuffleArray(cards.map((c) => c.id));
-    setSessionQueue(shuffled);
+  function handleGrade(quality: GradeQuality) {
+    if (!currentId) return;
+    const nextProgress = schedule(progressMap[currentId] ?? DEFAULT_PROGRESS, quality, Date.now());
+    const updatedProgress = { ...progressMap, [currentId]: nextProgress };
+    queryClient.setQueryData(['progress', unit], updatedProgress);
+    saveProgressMutation.mutate(updatedProgress);
+
+    if (quality === 'easy') {
+      setEasySet((prev) => new Set(prev).add(currentId));
+    } else {
+      setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
+    }
+
+    const nextQueue = buildQueue(cards, updatedProgress);
+    setSessionQueue(nextQueue);
     setQueueIndex(0);
-    setCurrentId(shuffled[0] ?? null);
+    const nextId = nextQueue.find((id) => id !== currentId) ?? nextQueue[0] ?? null;
+    setCurrentId(nextId);
     setShowAnswer(false);
     setShowReverse(false);
     setTypedAnswer('');
     setAnswerFeedback(null);
+
+    if (!nextId) {
+      setStudyMode('list');
+    }
   }
 
-  function handleGradeQueue(quality: Quality) {
-    if (!currentId) return;
-    const q = sessionQueue.slice();
-    const idx = Math.min(queueIndex, Math.max(0, q.length - 1));
-    let removeAt = idx < q.length && q[idx] === currentId ? idx : q.indexOf(currentId);
-    if (removeAt >= 0) q.splice(removeAt, 1);
-
-    const insertAhead = (n: number) => Math.min((removeAt >= 0 ? removeAt : idx) + n, q.length);
-    switch (quality) {
-      case 'again':
-        q.splice(insertAhead(2), 0, currentId);
-        // remove from easy set if user struggled
-        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
-        break;
-      case 'hard':
-        q.splice(insertAhead(5), 0, currentId);
-        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
-        break;
-      case 'good':
-        q.push(currentId);
-        if (easySet.has(currentId)) setEasySet((prev) => new Set([...prev].filter((id) => id !== currentId)));
-        break;
-      case 'easy':
-        // drop from queue
-        setEasySet((prev) => new Set(prev).add(currentId));
-        break;
-    }
-
-    if (q.length === 0) {
-      setSessionQueue([]);
-      setQueueIndex(0);
-      setCurrentId(null);
-      setStudyMode('list');
-      setShowAnswer(false);
-      setShowReverse(false);
-      setTypedAnswer('');
-      setAnswerFeedback(null);
-      return;
-    }
-
-    const nextIdx = Math.min(removeAt, q.length - 1);
-    setSessionQueue(q);
-    setQueueIndex(Math.max(0, nextIdx));
-    setCurrentId(q[Math.max(0, nextIdx)]);
+  function startCards() {
+    if (cards.length === 0) return;
+    const queue = buildQueue(cards, progressMap);
+    setStudyMode('cards');
+    setSessionQueue(queue);
+    setQueueIndex(0);
+    setCurrentId(queue[0] ?? null);
     setShowAnswer(false);
     setShowReverse(false);
     setTypedAnswer('');
@@ -312,6 +310,8 @@ function RouteComponent() {
     setCurrentId(null);
     setShowAnswer(false);
     setShowReverse(false);
+    queryClient.setQueryData(['progress', unit], {});
+    saveProgressMutation.mutate({});
   }
 
   function togglePromptSide() {
@@ -397,6 +397,8 @@ function RouteComponent() {
   async function handleResetSession() {
     await storage.deleteSession(unit);
     setResumeCandidate(null);
+    queryClient.setQueryData(['progress', unit], {});
+    saveProgressMutation.mutate({});
     // Clear queue and card session state
     setSessionQueue([]);
     setQueueIndex(0);
@@ -493,7 +495,7 @@ function RouteComponent() {
         <div className='mx-auto max-w-2xl px-3 sm:px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
           <div className='text-xs sm:text-sm text-muted-foreground'>
             {studyMode === 'list' && `${totalCount} words`}
-            {studyMode === 'cards' && `${sessionQueue.length} ${sessionQueue.length === 1 ? 'card' : 'cards'} left`}
+            {studyMode === 'cards' && `${dueCount} due / ${totalCount} total`}
             {studyMode === 'review' && `${reviewOrder.length - reviewIndex} left`}
           </div>
           <div className='flex items-center gap-1.5 sm:gap-2 flex-wrap'>
@@ -1049,6 +1051,13 @@ function Flashcard(props: {
       </style>
     </div>
   );
+}
+
+function buildQueue(cards: VocabCard[], progress: ProgressMap): string[] {
+  const sorted = cards
+    .map((c) => ({ id: c.id, dueAt: progress[c.id]?.dueAtMs ?? 0 }))
+    .sort((a, b) => a.dueAt - b.dueAt);
+  return sorted.map((s) => s.id);
 }
 
 function loadSettings(): Settings {

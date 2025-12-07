@@ -1,5 +1,19 @@
 ## Flashcard Scheduling Logic and Features
 
+**Last updated: 2025-12-07 00:00 UTC - Persisted SM-2 style due ordering**
+
+- Each card keeps `ease`, `intervalMs`, `repetitions`, `dueAtMs`, `lapses`, `updatedAt`. Defaults match the prior draft (ease 2.5, due now).
+- Grading applies SM-2–style rules:
+  - Again: ease -0.2 (≥1.3), interval 10s, reps 0, lapses +1
+  - Hard: ease -0.15 (≥1.3), interval max(60s, (interval||30s)*1.2)
+  - Good: if reps 0 → 5m else max(2m, (interval||1m)*ease); reps +1
+  - Easy: ease +0.05 (≤3.0), if reps 0 → 10m else max(5m, (interval||1m)*ease*1.3); reps +1
+  - After grading: dueAtMs = now + intervalMs
+- Progress is stored per unit in `localStorage` under `flashcards:progress:{unit}` and loaded via TanStack Query.
+- Session queue is ordered by `dueAtMs` ascending; the first card is shown. After grading, queue is rebuilt from updated progress.
+- “Due” indicator shows count of cards with `dueAtMs <= now`. Reset clears progress + session state.
+- Typing mode, review drill, and resume UI remain; the review drill does not change spaced repetition progress.
+
 **Last updated: 2025-10-27 - Added Review Drill (English → 한국어) on list page**
 
 ### Review Drill (English → 한국어)
