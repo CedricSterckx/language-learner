@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TypingRouteImport } from './routes/typing'
 import { Route as TimeRouteImport } from './routes/time'
+import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as NumbersRouteImport } from './routes/numbers'
 import { Route as FlashcardsRouteImport } from './routes/flashcards'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,6 +24,11 @@ const TypingRoute = TypingRouteImport.update({
 const TimeRoute = TimeRouteImport.update({
   id: '/time',
   path: '/time',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PositionsRoute = PositionsRouteImport.update({
+  id: '/positions',
+  path: '/positions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NumbersRoute = NumbersRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
   '/numbers': typeof NumbersRoute
+  '/positions': typeof PositionsRoute
   '/time': typeof TimeRoute
   '/typing': typeof TypingRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
   '/numbers': typeof NumbersRoute
+  '/positions': typeof PositionsRoute
   '/time': typeof TimeRoute
   '/typing': typeof TypingRoute
 }
@@ -60,21 +68,36 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
   '/numbers': typeof NumbersRoute
+  '/positions': typeof PositionsRoute
   '/time': typeof TimeRoute
   '/typing': typeof TypingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/flashcards' | '/numbers' | '/time' | '/typing'
+  fullPaths:
+    | '/'
+    | '/flashcards'
+    | '/numbers'
+    | '/positions'
+    | '/time'
+    | '/typing'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/flashcards' | '/numbers' | '/time' | '/typing'
-  id: '__root__' | '/' | '/flashcards' | '/numbers' | '/time' | '/typing'
+  to: '/' | '/flashcards' | '/numbers' | '/positions' | '/time' | '/typing'
+  id:
+    | '__root__'
+    | '/'
+    | '/flashcards'
+    | '/numbers'
+    | '/positions'
+    | '/time'
+    | '/typing'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FlashcardsRoute: typeof FlashcardsRoute
   NumbersRoute: typeof NumbersRoute
+  PositionsRoute: typeof PositionsRoute
   TimeRoute: typeof TimeRoute
   TypingRoute: typeof TypingRoute
 }
@@ -93,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/time'
       fullPath: '/time'
       preLoaderRoute: typeof TimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions': {
+      id: '/positions'
+      path: '/positions'
+      fullPath: '/positions'
+      preLoaderRoute: typeof PositionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/numbers': {
@@ -123,6 +153,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FlashcardsRoute: FlashcardsRoute,
   NumbersRoute: NumbersRoute,
+  PositionsRoute: PositionsRoute,
   TimeRoute: TimeRoute,
   TypingRoute: TypingRoute,
 }

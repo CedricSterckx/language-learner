@@ -18,6 +18,7 @@ export function AppHeader() {
     { path: '/', label: 'Vocab', fullLabel: 'Vocabulary' },
     { path: '/numbers', label: 'Num', fullLabel: 'Numbers' },
     { path: '/time', label: 'Time', fullLabel: 'Time' },
+    { path: '/positions', label: 'Pos', fullLabel: 'Positions' },
     { path: '/typing', label: 'Type', fullLabel: 'Typing' },
   ];
 
