@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { getUnitsMeta, searchVocabulary, type SearchItem } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 
 export const Route = createFileRoute('/')({
   component: RouteComponent,
@@ -102,6 +103,7 @@ function RouteComponent() {
                 variant='outline'
                 className='w-full h-auto min-h-[80px] sm:min-h-[100px] flex flex-col items-center justify-center space-y-1.5 sm:space-y-3 p-3 sm:p-5 hover:shadow-md active:shadow-md transition-shadow cursor-pointer relative'
               >
+                <UnitCompletionCheck unitId={unit.id} />
                 <div className='text-sm sm:text-lg font-medium'>{unit.name}</div>
                 <div className='text-xs sm:text-sm text-muted-foreground line-clamp-2'>
                   <UnitKeywords unitId={unit.id} />
@@ -139,6 +141,42 @@ function UnitKeywords({ unitId }: { unitId: string }) {
   }, [unitId]);
 
   return <span>{text}</span>;
+}
+
+function UnitCompletionCheck({ unitId }: { unitId: string }) {
+  const [isCompleted, setIsCompleted] = useState<boolean>(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const items = await (await import('@/lib/vocabulary')).loadUnit(unitId);
+        if (cancelled) return;
+
+        // Load progress (easy set)
+        try {
+          const raw = localStorage.getItem(`flashcards:${unitId}:easy`);
+          const easyIds = raw ? (JSON.parse(raw) as string[]) : [];
+          const itemIds = new Set(items.map((item) => `${item.korean}|${item.english}`));
+          const done = easyIds.filter((id) => itemIds.has(id)).length;
+          setIsCompleted(done === items.length && items.length > 0);
+        } catch {
+          setIsCompleted(false);
+        }
+      } catch {
+        if (!cancelled) setIsCompleted(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [unitId]);
+
+  if (!isCompleted) return null;
+
+  return (
+    <CheckCircle2 className='absolute top-1.5 right-1.5 sm:top-3 sm:right-3 w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-500' />
+  );
 }
 
 function UnitWordCount({ unitId }: { unitId: string }) {
