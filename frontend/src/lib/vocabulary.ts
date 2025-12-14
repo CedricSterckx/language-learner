@@ -92,3 +92,32 @@ export async function searchVocabulary(query: string, limit = 50): Promise<Searc
   }
   return matches;
 }
+
+// --- Load all vocabulary from all units ---
+export type VocabItemWithUnit = VocabItem & {
+  unitId: string;
+  exampleKorean?: string;
+  exampleEnglish?: string;
+};
+
+let allVocabPromise: Promise<VocabItemWithUnit[]> | null = null;
+
+async function buildAllVocab(): Promise<VocabItemWithUnit[]> {
+  const entries = Object.entries(unitModules);
+  const results = await Promise.all(
+    entries.map(async ([path, loader]) => {
+      const unitId = getUnitIdFromPath(path);
+      const mod = (await loader()) as { default: VocabItemWithUnit[] };
+      const data = Array.isArray((mod as any).default) ? (mod as any).default : (mod as any);
+      return (data as VocabItemWithUnit[]).map((v) => ({ ...v, unitId }));
+    })
+  );
+  return results.flat();
+}
+
+export async function loadAllVocabulary(): Promise<VocabItemWithUnit[]> {
+  if (!allVocabPromise) {
+    allVocabPromise = buildAllVocab();
+  }
+  return allVocabPromise;
+}

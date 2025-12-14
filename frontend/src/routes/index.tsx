@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { getUnitsMeta, searchVocabulary, type SearchItem } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Shuffle } from 'lucide-react';
 
 export const Route = createFileRoute('/')({
   component: RouteComponent,
@@ -96,22 +96,48 @@ function RouteComponent() {
           )}
         </div>
 
-        <div className='grid gap-2 sm:gap-4 grid-cols-2'>
-          {vocabularyUnits.map((unit) => (
-            <Link key={unit.id} to='/flashcards' search={{ unit: unit.id }}>
-              <Button
-                variant='outline'
-                className='w-full h-auto min-h-[80px] sm:min-h-[100px] flex flex-col items-center justify-center space-y-1.5 sm:space-y-3 p-3 sm:p-5 hover:shadow-md active:shadow-md transition-shadow cursor-pointer relative'
-              >
-                <UnitCompletionCheck unitId={unit.id} />
-                <div className='text-sm sm:text-lg font-medium'>{unit.name}</div>
-                <div className='text-xs sm:text-sm text-muted-foreground line-clamp-2'>
-                  <UnitKeywords unitId={unit.id} />
-                </div>
-                <UnitWordCount unitId={unit.id} />
-              </Button>
-            </Link>
-          ))}
+        {/* Random Mix Section */}
+        <div className='space-y-3'>
+          <div className='flex items-center gap-2 px-1'>
+            <Shuffle className='w-5 h-5 text-primary' />
+            <h2 className='text-base sm:text-lg font-semibold'>Random Mix</h2>
+          </div>
+          <div className='grid grid-cols-3 gap-2 sm:gap-4'>
+            {([10, 20, 30] as const).map((count) => (
+              <Link key={count} to='/flashcards' search={{ unit: 'mix', mix: true, count }} className='flex-1'>
+                <Button
+                  variant='outline'
+                  className='w-full h-auto min-h-[80px] sm:min-h-[100px] flex flex-col items-center justify-center space-y-1 p-2 hover:shadow-md active:shadow-md transition-shadow cursor-pointer'
+                >
+                  <span className='text-xl sm:text-2xl font-bold'>{count}</span>
+                  <span className='text-xs sm:text-sm text-muted-foreground'>words</span>
+                </Button>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className='space-y-3'>
+          <div className='flex items-center gap-2 px-1'>
+            <h2 className='text-base sm:text-lg font-semibold'>Units</h2>
+          </div>
+          <div className='grid gap-2 sm:gap-4 grid-cols-2'>
+            {vocabularyUnits.map((unit) => (
+              <Link key={unit.id} to='/flashcards' search={{ unit: unit.id }}>
+                <Button
+                  variant='outline'
+                  className='w-full h-auto min-h-[80px] sm:min-h-[100px] flex flex-col items-center justify-center space-y-1.5 sm:space-y-3 p-3 sm:p-5 hover:shadow-md active:shadow-md transition-shadow cursor-pointer relative'
+                >
+                  <UnitCompletionCheck unitId={unit.id} />
+                  <div className='text-sm sm:text-lg font-medium'>{unit.name}</div>
+                  <div className='text-xs sm:text-sm text-muted-foreground line-clamp-2'>
+                    <UnitKeywords unitId={unit.id} />
+                  </div>
+                  <UnitWordCount unitId={unit.id} />
+                </Button>
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div className='text-xs sm:text-sm text-muted-foreground'>Korean-English vocabulary cards</div>

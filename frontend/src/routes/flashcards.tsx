@@ -2,9 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useKoreanKeyboard } from '@/components/KoreanKeyboardProvider';
-import { createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import { getStorageProvider, type SessionStateV1 } from '@/lib/persistence';
-import { loadUnit } from '@/lib/vocabulary';
+import { loadUnit, loadAllVocabulary } from '@/lib/vocabulary';
 import { useEffect, useMemo, useState } from 'react';
 
 // Native TTS for Korean
@@ -46,15 +46,19 @@ const DEFAULT_SETTINGS: Settings = {
 
 export const Route = createFileRoute('/flashcards')({
   component: RouteComponent,
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { unit: string; mix?: boolean; count?: 10 | 20 | 30 } => {
+    const count = Number(search.count);
+    const mix = search.mix === true || search.mix === 'true';
     return {
       unit: (search.unit as string) ?? 'voc_1',
+      ...(mix ? { mix: true } : {}),
+      ...([10, 20, 30].includes(count) ? { count: count as 10 | 20 | 30 } : {}),
     };
   },
 });
 
 function RouteComponent() {
-  const { unit } = Route.useSearch();
+  const { unit, mix = false, count = 20 } = Route.useSearch();
   const [cards, setCards] = useState<VocabCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,8 +103,17 @@ function RouteComponent() {
     void (async () => {
       try {
         setLoading(true);
-        const raw = await loadUnit(unit);
-        const withIds: VocabCard[] = raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
+        let withIds: VocabCard[];
+        if (mix) {
+          // Load all vocabulary from all units, shuffle, and take count
+          const all = await loadAllVocabulary();
+          const shuffled = shuffleArray(all);
+          const subset = shuffled.slice(0, count);
+          withIds = subset.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
+        } else {
+          const raw = await loadUnit(unit);
+          withIds = raw.map((r) => ({ ...r, id: `${r.korean}|${r.english}` }));
+        }
         setCards(withIds);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unknown error');
@@ -108,10 +121,18 @@ function RouteComponent() {
         setLoading(false);
       }
     })();
-  }, [unit]);
+  }, [unit, mix, count]);
 
-  // Load saved session once cards are available
+  // Auto-start cards mode in mix mode
   useEffect(() => {
+    if (mix && !loading && cards.length > 0 && studyMode === 'list') {
+      startCards();
+    }
+  }, [mix, loading, cards.length, studyMode]);
+
+  // Load saved session once cards are available (skip for mix mode)
+  useEffect(() => {
+    if (mix) return; // No session persistence for mix mode
     if (loading || cards.length === 0) return;
     let cancelled = false;
     (async () => {
@@ -127,25 +148,28 @@ function RouteComponent() {
     return () => {
       cancelled = true;
     };
-  }, [unit, loading, cards, storage]);
+  }, [unit, mix, loading, cards, storage]);
 
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
 
-  // Reload easySet on unit change
+  // Reload easySet on unit change (skip for mix mode)
   useEffect(() => {
+    if (mix) return;
     setEasySet(loadEasySet(unit));
-  }, [unit]);
+  }, [unit, mix]);
 
-  // Persist easySet (debounced)
+  // Persist easySet (debounced) - skip for mix mode
   useEffect(() => {
+    if (mix) return;
     const timer = window.setTimeout(() => saveEasySet(unit, easySet), 300);
     return () => window.clearTimeout(timer);
-  }, [unit, easySet]);
+  }, [unit, mix, easySet]);
 
-  // Autosave session (debounced)
+  // Autosave session (debounced) - skip for mix mode
   useEffect(() => {
+    if (mix) return; // No session persistence for mix mode
     if (cards.length === 0) return;
     const reviewOrderIds = reviewOrder.map((c) => c.id);
     const session: SessionStateV1 = {
@@ -173,6 +197,7 @@ function RouteComponent() {
     return () => window.clearTimeout(timer);
   }, [
     unit,
+    mix,
     studyMode,
     currentId,
     showAnswer,
@@ -492,6 +517,7 @@ function RouteComponent() {
       <div className='border-b bg-muted/30'>
         <div className='mx-auto max-w-2xl px-3 sm:px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
           <div className='text-xs sm:text-sm text-muted-foreground'>
+            {mix && <span className='font-medium text-primary mr-1'>Random Mix</span>}
             {studyMode === 'list' && `${totalCount} words`}
             {studyMode === 'cards' && `${sessionQueue.length} ${sessionQueue.length === 1 ? 'card' : 'cards'} left`}
             {studyMode === 'review' && `${reviewOrder.length - reviewIndex} left`}
@@ -686,9 +712,15 @@ function RouteComponent() {
             <div className='text-center space-y-3'>
               <div className='text-xl'>All caught up 🎉</div>
 
-              <Button onClick={() => setStudyMode('list')} variant='outline'>
-                Back to list
-              </Button>
+              {mix ? (
+                <Link to='/'>
+                  <Button variant='outline'>Back to Home</Button>
+                </Link>
+              ) : (
+                <Button onClick={() => setStudyMode('list')} variant='outline'>
+                  Back to list
+                </Button>
+              )}
             </div>
           </div>
         )}
